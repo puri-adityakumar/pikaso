@@ -148,3 +148,7 @@ Before returning the mockup, verify:
 - [ ] Selector stability — important elements have `id` attributes or stable class names
       so annotation selectors survive minor edits.
 - [ ] File is valid HTML5 — opening `<!DOCTYPE html>`, `<html lang>`, `<meta charset>`.
+
+---
+
+> design rules distilled with inspiration from Leonxlnx/taste-skill (MIT)
