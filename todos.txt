@@ -1,0 +1,4 @@
+- keep design the landing + add docs when project is ready
+- want and HTML canvas intead figma canvas option for design audit later planning
+- testing and also check again automated testing
+- publishing in npx, skillsh and calude plugin
