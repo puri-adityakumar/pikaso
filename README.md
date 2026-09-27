@@ -1,6 +1,6 @@
 # Pikaso
 
-![Pikaso — Point. Don't describe.](docs/cover.png)
+![Pikaso — Point. Don't describe.](public/assets/cover.png)
 
 Annotate a mockup, let your coding agent apply it. Pikaso is a design
 review loop for agent-driven development: an agent generates HTML mockups
@@ -14,8 +14,8 @@ IBM Bob 2.0.
 
 **Status:** in progress — being built live for the [IBM Bob 2.0
 Hackathon](https://lablab.ai/ai-hackathons/ibm-bob-2-hackathon)
-(submission due Sept 27, 2026). See [IMPLEMENTATION-PLAN.md](IMPLEMENTATION-PLAN.md),
-[DECISIONS.md](DECISIONS.md), [CONTEXT.md](CONTEXT.md).
+(submission due Sept 27, 2026). See [docs/DECISIONS.md](docs/DECISIONS.md)
+and [docs/PROTOCOL.md](docs/PROTOCOL.md).
 
 ```
 npx pikaso        # soon — board server + annotation canvas
