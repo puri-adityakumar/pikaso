@@ -443,20 +443,19 @@ function connectSSE() {
 
   es.addEventListener('annotations', (e) => {
     try {
-      const { frame, open } = JSON.parse(e.data);
-      // Re-fetch updated count for this frame
+      const { frame } = JSON.parse(e.data);
       fetchOpenCount(frame).then(count => {
-        // Find frame status from canvas
-        const wrapper = canvas.querySelector(`[data-frame="${CSS.escape(frame)}"]`);
-        if (!wrapper) return;
-        const iframe = wrapper.querySelector('iframe');
-        // Status unknown without a re-fetch; use a light approach: fetch project
         apiFetch('/api/project').then(project => {
           const f = project.frames.find(fr => fr.name === frame);
           if (f) renderLabel(frame, f.status, count);
         }).catch(() => {});
       });
     } catch { /* malformed event */ }
+  });
+
+  es.addEventListener('lock', () => {
+    // Re-render all labels with updated locked status
+    apiFetch('/api/project').then(project => renderBoard(project)).catch(() => {});
   });
 
   es.onerror = () => {
