@@ -4,6 +4,12 @@ Handoff doc: everything needed to finish the demo video chunks and assemble the
 final demo. **Current state after this doc was pushed: chunk 1 is recorded and
 committed; chunks 2–4 are fully scripted below and need ~20 minutes to capture.**
 
+**Companion doc:** `docs/VIDEO-PLAN.md` — the ≤3:00 submission edit: hackathon
+constraints, verbatim narration, scene timing, brand rules. This runbook captures
+the raw chunks; that doc turns them into the final MP4.
+Chunk → scene map: **chunk 1 → scene 2 · chunk 2 → scene 3 · chunk 3 → scene 4 ·
+chunk 4 → scene 6** (capture at 1280×720; the edit upscales to 1080p).
+
 Repo: `puri-adityakumar/pikaso` (main). Hackathon deadline: **2026-09-27 15:00 UTC.**
 
 ---

@@ -1,5 +1,10 @@
 # Pikaso — Demo Video Plan (target: ≤ 3:00, MP4)
 
+> Raw-capture runbook — recorder settings, known gotchas, chunk files, reset script —
+> lives in **`bob_sessions/DEMO-VIDEO-PLAN.md`**. Chunk 1 (board pan/zoom + new frame)
+> is already recorded: `bob_sessions/videos/pikaso-demo-chunk-1-board-pan-zoom-new-frame.webm`.
+> Chunk → scene map: chunk 1 → scene 2 · chunk 2 → scene 3 · chunk 3 → scene 4 · chunk 4 → scene 6.
+
 ## Hard constraints (from hackathon guidelines)
 
 - **Max length 3:00** — judges stop watching at 3 minutes.
