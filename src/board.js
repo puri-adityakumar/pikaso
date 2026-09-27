@@ -23,7 +23,8 @@ import { randomUUID } from 'node:crypto';
  *   y: number,
  *   w: number,
  *   h: number,
- *   status: 'draft' | 'locked'
+ *   status: 'draft' | 'locked',
+ *   purpose?: string
  * }} Frame
  *
  * @typedef {{
@@ -157,7 +158,7 @@ function starterHtml(name) {
  *
  * @param {string} root   Board root directory.
  * @param {string} name   Frame name (alphanumeric, dash, underscore only).
- * @param {{ x?: number, y?: number, w?: number, h?: number }} [opts]
+ * @param {{ x?: number, y?: number, w?: number, h?: number, purpose?: string }} [opts]
  * @returns {{ project: Project, frame: Frame }}
  * @throws {Error} If name is unsafe or already exists.
  */
@@ -179,6 +180,7 @@ export function createFrame(root, name, opts = {}) {
     w: opts.w ?? 800,
     h: opts.h ?? 600,
     status: 'draft',
+    ...(opts.purpose ? { purpose: String(opts.purpose).slice(0, 300) } : {}),
   };
 
   // Create frame directory + files

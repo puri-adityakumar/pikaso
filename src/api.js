@@ -95,8 +95,12 @@ export function handleApiRequest(req, res, root, ctx) {
       const b = /** @type {any} */ (body);
       const name = typeof b.name === 'string' ? b.name.trim() : '';
       if (!name) return send400(res, 'name is required');
+      // The board UI sends the user's intent as `description`; API clients may use `purpose`.
+      const purposeRaw = typeof b.description === 'string' ? b.description
+                       : typeof b.purpose === 'string' ? b.purpose : '';
+      const purpose = purposeRaw.trim().slice(0, 300);
       try {
-        const { frame } = createFrame(root, name, {});
+        const { frame } = createFrame(root, name, purpose ? { purpose } : {});
         // Broadcast to all SSE clients that project updated
         broadcastSSE('annotations', { frame: name });
         sendJson(res, 201, frame);

@@ -53,12 +53,34 @@ function readConfig(root) {
 // ---------------------------------------------------------------------------
 
 /**
+ * Extract CSS custom property declarations from a frame's mockup to form its
+ * token contract (the vocabulary an implementer must reuse).
+ * @param {string} mockupPath
+ * @returns {string[]} Lines like `--accent: #ff5a36;`
+ */
+function extractTokens(mockupPath) {
+  try {
+    const css = readFileSync(mockupPath, 'utf8');
+    const out = [];
+    for (const m of css.matchAll(/--[a-zA-Z][\w-]*\s*:\s*[^;{}]+;/g)) {
+      const line = m[0].replace(/\s+/g, ' ').trim();
+      if (!out.includes(line)) out.push(line);
+      if (out.length >= 24) break;
+    }
+    return out;
+  } catch {
+    return [];
+  }
+}
+
+/**
  * Build the markdown content for DESIGN-SPEC.md.
  * @param {import('./board.js').Project} project
  * @param {Array<{ frame: import('./board.js').Frame, annotations: import('./board.js').Annotation[] }>} frameData
+ * @param {string} root  Board root directory (to locate each frame's mockup).
  * @returns {string}
  */
-function buildDesignSpec(project, frameData) {
+function buildDesignSpec(project, frameData, root) {
   const lines = [
     `# DESIGN-SPEC — ${project.name}`,
     '',
@@ -76,8 +98,30 @@ function buildDesignSpec(project, frameData) {
     lines.push(`## Frame: ${frame.name}`);
     lines.push('');
     lines.push(`- **Status:** locked`);
+    lines.push(`- **Purpose:** ${frame.purpose ?? '—'}`);
     lines.push(`- **Viewport:** ${frame.w} × ${frame.h}px`);
     lines.push(`- **Position on board:** x=${frame.x}, y=${frame.y}`);
+    lines.push('');
+
+    // Token contract — CSS custom properties declared in the approved mockup
+    const tokens = extractTokens(join(root, 'frames', frame.name, 'mockup.html'));
+    lines.push('### Token contract');
+    lines.push('');
+    if (tokens.length > 0) {
+      lines.push('```css');
+      for (const t of tokens) lines.push(t);
+      lines.push('```');
+    } else {
+      lines.push("_No CSS custom properties declared — match the mockup's literal values._");
+    }
+    lines.push('');
+
+    // Final state
+    lines.push('### Final state');
+    lines.push('');
+    lines.push(`- **Authoritative mockup:** \`frames/${frame.name}/mockup.html\` (self-contained)`);
+    lines.push(`- **Locked at:** ${new Date().toISOString()}`);
+    lines.push(`- **Annotations at lock time:** ${resolved.length} resolved, ${open.length} open`);
     lines.push('');
 
     if (resolved.length > 0) {
@@ -247,7 +291,7 @@ export async function lockBoard(root, opts = {}) {
 
   // Write DESIGN-SPEC.md atomically
   const specPath = join(root, 'DESIGN-SPEC.md');
-  const specContent = buildDesignSpec(project, frameData);
+  const specContent = buildDesignSpec(project, frameData, root);
   mkdirSync(root, { recursive: true });
   atomicWriteText(specPath, specContent);
 
