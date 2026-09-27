@@ -1,0 +1,4 @@
+.pikaso/
+node_modules/
+*.log
+

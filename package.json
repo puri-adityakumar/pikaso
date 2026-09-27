@@ -1,0 +1,22 @@
+{
+  "name": "pikaso",
+  "version": "0.1.0",
+  "description": "Agent-driven mockup board: annotate HTML frames, agents iterate, lock to implementation handoff",
+  "type": "module",
+  "bin": {
+    "pikaso": "src/bin/pikaso.js"
+  },
+  "files": [
+    "src",
+    "public",
+    "integrations"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "test": "node --test 'test/**/*.test.js'"
+  },
+  "keywords": ["design", "annotation", "mockup", "agent", "ibm-bob"],
+  "license": "MIT"
+}
