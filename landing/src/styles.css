@@ -280,10 +280,30 @@ pre { font-family: var(--mono); font-size: 0.82rem; line-height: 1.6; white-spac
 .council .eyebrow { color: #15707f; font-size: 1.05rem; }
 .why .eyebrow { color: #a97e0e; font-size: 1.05rem; }
 .cast { display: grid; grid-template-columns: 1fr 1fr; gap: 0.9rem; margin-top: 1.6rem; max-width: 40rem; }
-.cast-item { background: rgba(255, 255, 255, 0.65); border-radius: 10px; padding: 0.9rem 1.1rem; }
+.cast-item {
+  background: rgba(255, 255, 255, 0.65);
+  border-radius: 10px;
+  padding: 0.9rem 1.1rem;
+  transition: transform 0.3s cubic-bezier(0.6, 0, 0, 1);
+}
+.cast-item:hover { transform: translateY(-4px); }
 .cast-item h4 { font-size: 0.95rem; margin-bottom: 0.25rem; }
 .cast-item p { font-size: 0.8rem; margin: 0; color: #4d5c5a; }
-.council-card { transform: rotate(-1deg); }
+.bots-wrap { position: relative; padding-bottom: 30px; }
+.bots-art {
+  display: block;
+  width: 100%;
+  border-radius: 18px;
+  box-shadow: 0 24px 50px rgba(43, 42, 38, 0.16);
+}
+.council-card {
+  position: absolute;
+  left: -14px;
+  bottom: 0;
+  width: min(420px, 88%);
+  transform: rotate(-1.2deg);
+  box-shadow: 0 18px 40px rgba(43, 42, 38, 0.22);
+}
 
 .dim-code { color: #5c5b50; }
 
@@ -396,6 +416,16 @@ pre { font-family: var(--mono); font-size: 0.82rem; line-height: 1.6; white-spac
   font-weight: 600;
   color: var(--ink);
   margin-top: 1.4rem;
+}
+
+
+/* ---------- bots float ---------- */
+@keyframes bots-bob {
+  from { transform: translateY(0) rotate(-0.4deg); }
+  to { transform: translateY(-10px) rotate(0.5deg); }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .bots-art { animation: bots-bob 5s ease-in-out infinite alternate; }
 }
 
 /* ---------- responsive ---------- */

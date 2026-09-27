@@ -225,10 +225,16 @@ function Council() {
           ))}
         </div>
       </div>
-      <div className="split-visual">
-        <div className="card council-card" data-reveal data-delay="1">
-          <div className="code-head">art-director — design read</div>
-          <pre className="dim-code">{`Reading this as: SaaS landing for
+      <div className="split-visual" data-reveal data-delay="1">
+        <div className="bots-wrap">
+          <img
+            className="bots-art"
+            src="/pikaso/img/council-bots.png"
+            alt="The Pikaso design council: four small robots, one for Scout, Art Director, Builder, and Critic"
+          />
+          <div className="card council-card">
+            <div className="code-head">art-director — design read</div>
+            <pre className="dim-code">{`Reading this as: SaaS landing for
 technical buyers, Linear-clean,
 leaning Tailwind + Geist.
 
@@ -236,6 +242,7 @@ DIALS  variance 7 · motion 5 · density 3
 
 Council convened: typography, contrast
 → 2 fix items merged → 1 revision`}</pre>
+          </div>
         </div>
       </div>
     </section>
