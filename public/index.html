@@ -12,11 +12,312 @@
       background: #0d1117;
       color: #e6edf3;
     }
-    #board-root { width: 100%; height: 100%; }
+
+    /* ── Top bar ─────────────────────────────────────────────────────── */
+    #top-bar {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      height: 44px;
+      background: #161b22;
+      border-bottom: 1px solid #30363d;
+      display: flex;
+      align-items: center;
+      padding: 0 16px;
+      gap: 12px;
+      z-index: 100;
+      user-select: none;
+    }
+    #top-bar .brand {
+      font-weight: 600;
+      font-size: 15px;
+      color: #e6edf3;
+      letter-spacing: -0.3px;
+    }
+    #top-bar .sep { color: #30363d; font-size: 18px; line-height: 1; }
+    #top-bar .board-name {
+      font-size: 13px;
+      color: #8b949e;
+    }
+    #top-bar .spacer { flex: 1; }
+    #top-bar #bob-status {
+      font-size: 12px;
+      color: #8b949e;
+    }
+    #top-bar #bob-status.active { color: #3fb950; }
+
+    /* new-frame strip */
+    #new-frame-strip {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+    }
+    #new-frame-strip input {
+      font: 13px/1 -apple-system, "Segoe UI", system-ui, sans-serif;
+      background: #0d1117;
+      border: 1px solid #30363d;
+      color: #e6edf3;
+      border-radius: 5px;
+      padding: 5px 10px;
+      width: 240px;
+      outline: none;
+    }
+    #new-frame-strip input:focus { border-color: #388bfd; }
+    #new-frame-strip input::placeholder { color: #484f58; }
+    #new-frame-btn {
+      font: 12px/1 -apple-system, "Segoe UI", system-ui, sans-serif;
+      background: #238636;
+      color: #fff;
+      border: none;
+      border-radius: 5px;
+      padding: 6px 12px;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    #new-frame-btn:hover { background: #2ea043; }
+    #new-frame-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    /* ── Board canvas ────────────────────────────────────────────────── */
+    #board-root {
+      position: fixed;
+      top: 44px; left: 0; right: 0; bottom: 0;
+      overflow: hidden;
+      cursor: grab;
+    }
+    #board-root.panning { cursor: grabbing; }
+
+    /* dotted grid background — rendered via CSS, moves with the canvas */
+    #board-root::before {
+      content: '';
+      position: absolute;
+      inset: -9999px;
+      background-image: radial-gradient(circle, #30363d 1px, transparent 1px);
+      background-size: 24px 24px;
+      pointer-events: none;
+    }
+
+    #canvas {
+      position: absolute;
+      top: 0; left: 0;
+      transform-origin: 0 0;
+      will-change: transform;
+    }
+
+    /* ── Frame wrappers ──────────────────────────────────────────────── */
+    .frame-wrapper {
+      position: absolute;
+    }
+    .frame-label {
+      position: absolute;
+      top: -26px;
+      left: 0;
+      font-size: 12px;
+      color: #8b949e;
+      white-space: nowrap;
+      pointer-events: none;
+    }
+    .frame-label .frame-name { font-weight: 600; color: #e6edf3; }
+    .frame-label .frame-status {
+      font-size: 11px;
+      padding: 1px 5px;
+      border-radius: 3px;
+      margin-left: 6px;
+      background: #21262d;
+      color: #8b949e;
+    }
+    .frame-label .frame-status.locked {
+      background: #1f3a1f;
+      color: #3fb950;
+    }
+    .frame-label .ann-count {
+      margin-left: 5px;
+      color: #f0883e;
+    }
+    .frame-label .ann-count.zero { color: #484f58; }
+    .frame-iframe {
+      display: block;
+      border: 1px solid #30363d;
+      border-radius: 4px;
+      background: #fff;
+    }
+
+    /* ── Zoom pill ───────────────────────────────────────────────────── */
+    #zoom-pill {
+      position: fixed;
+      bottom: 20px; left: 20px;
+      display: flex;
+      align-items: center;
+      gap: 2px;
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 7px;
+      padding: 4px 6px;
+      z-index: 100;
+      user-select: none;
+    }
+    .zoom-btn {
+      background: none;
+      border: none;
+      color: #e6edf3;
+      font-size: 15px;
+      line-height: 1;
+      width: 26px;
+      height: 26px;
+      cursor: pointer;
+      border-radius: 4px;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .zoom-btn:hover { background: #21262d; }
+    #zoom-label {
+      font-size: 12px;
+      color: #8b949e;
+      min-width: 42px;
+      text-align: center;
+    }
+
+    /* ── Lock button ─────────────────────────────────────────────────── */
+    #lock-btn {
+      position: fixed;
+      bottom: 20px; right: 20px;
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 7px;
+      padding: 8px 16px;
+      color: #e6edf3;
+      font: 13px/1 -apple-system, "Segoe UI", system-ui, sans-serif;
+      cursor: pointer;
+      z-index: 100;
+    }
+    #lock-btn:hover { background: #21262d; border-color: #8b949e; }
+
+    /* ── Modal ───────────────────────────────────────────────────────── */
+    #modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.7);
+      z-index: 200;
+      align-items: center;
+      justify-content: center;
+    }
+    #modal-overlay.open { display: flex; }
+    #modal {
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 10px;
+      padding: 28px 32px;
+      min-width: 380px;
+      max-width: 440px;
+    }
+    #modal h2 {
+      font-size: 15px;
+      font-weight: 600;
+      margin-bottom: 16px;
+    }
+    #modal .modal-stats {
+      font-size: 13px;
+      color: #8b949e;
+      margin-bottom: 8px;
+    }
+    #modal .modal-note {
+      font-size: 12px;
+      color: #484f58;
+      margin-bottom: 20px;
+    }
+    #modal .modal-actions {
+      display: flex;
+      gap: 8px;
+      justify-content: flex-end;
+      flex-wrap: wrap;
+    }
+    .modal-btn {
+      font: 13px/1 -apple-system, "Segoe UI", system-ui, sans-serif;
+      border-radius: 6px;
+      padding: 7px 14px;
+      border: 1px solid #30363d;
+      cursor: pointer;
+    }
+    #modal-run-btn {
+      background: #238636;
+      color: #fff;
+      border-color: #238636;
+    }
+    #modal-run-btn:hover { background: #2ea043; }
+    #modal-copy-btn {
+      background: #21262d;
+      color: #e6edf3;
+    }
+    #modal-copy-btn:hover { background: #30363d; }
+    #modal-cancel-btn {
+      background: none;
+      color: #8b949e;
+    }
+    #modal-cancel-btn:hover { color: #e6edf3; }
+
+    /* ── Toast ───────────────────────────────────────────────────────── */
+    #toast {
+      position: fixed;
+      bottom: 72px; left: 50%;
+      transform: translateX(-50%);
+      background: #21262d;
+      border: 1px solid #30363d;
+      border-radius: 6px;
+      padding: 8px 18px;
+      font-size: 13px;
+      color: #e6edf3;
+      z-index: 300;
+      opacity: 0;
+      transition: opacity 0.2s;
+      pointer-events: none;
+    }
+    #toast.show { opacity: 1; }
   </style>
 </head>
 <body>
-  <div id="board-root"></div>
+  <!-- Top bar -->
+  <div id="top-bar">
+    <span class="brand">Pikaso</span>
+    <span class="sep">›</span>
+    <span class="board-name" id="board-name">board</span>
+    <span class="spacer"></span>
+    <span id="bob-status">Bob: idle</span>
+    <div id="new-frame-strip">
+      <input id="new-frame-input" type="text" placeholder="Describe the screen…" autocomplete="off">
+      <button id="new-frame-btn">+ Generate mockup</button>
+    </div>
+  </div>
+
+  <!-- Board canvas -->
+  <div id="board-root">
+    <div id="canvas"></div>
+  </div>
+
+  <!-- Zoom pill -->
+  <div id="zoom-pill">
+    <button class="zoom-btn" id="zoom-out">−</button>
+    <span id="zoom-label">100%</span>
+    <button class="zoom-btn" id="zoom-in">+</button>
+  </div>
+
+  <!-- Lock button -->
+  <button id="lock-btn">Lock draft › implement</button>
+
+  <!-- Lock modal -->
+  <div id="modal-overlay">
+    <div id="modal">
+      <h2>Lock draft &amp; start implementation?</h2>
+      <p class="modal-stats" id="modal-stats"></p>
+      <p class="modal-note">Writes <code>.pikaso/DESIGN-SPEC.md</code></p>
+      <div class="modal-actions">
+        <button class="modal-btn" id="modal-run-btn">Run with Bob Shell</button>
+        <button class="modal-btn" id="modal-copy-btn">Copy prompt</button>
+        <button class="modal-btn" id="modal-cancel-btn">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div id="toast"></div>
+
   <script src="/board.js" type="module"></script>
 </body>
 </html>
