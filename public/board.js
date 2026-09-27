@@ -386,11 +386,12 @@ modalOverlay.addEventListener('click', (e) => {
   }
 });
 
-async function doLock() {
+async function doLock(run) {
   modalRunBtn.disabled = true;
   modalCopyBtn.disabled = true;
   try {
-    const result = await apiFetch('/api/lock', { method: 'POST', body: '{}' });
+    // run=false (Copy prompt) must NOT dispatch agentCommand server-side
+    const result = await apiFetch('/api/lock', { method: 'POST', body: JSON.stringify({ run }) });
     modalOverlay.classList.remove('open');
     toast('Locked! DESIGN-SPEC.md written.', 4000);
     return result;
@@ -404,14 +405,14 @@ async function doLock() {
 }
 
 modalRunBtn.addEventListener('click', async () => {
-  const result = await doLock();
+  const result = await doLock(true);
   if (result?.prompt) {
     toast('Sent to Bob Shell.', 3000);
   }
 });
 
 modalCopyBtn.addEventListener('click', async () => {
-  const result = await doLock();
+  const result = await doLock(false);
   if (result?.prompt) {
     try {
       await navigator.clipboard.writeText(result.prompt);
