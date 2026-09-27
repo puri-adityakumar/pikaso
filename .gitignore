@@ -2,3 +2,8 @@
 node_modules/
 *.log
 
+
+# hyperframes QA artifacts
+pikaso-brag/snapshots/
+pikaso-brag/renders/frame-*.png
+pikaso-brag/renders/v*.png
