@@ -101,7 +101,10 @@ function Hero() {
           <a className="ghost-link" href="#loop">See the loop</a>
         </div>
       </div>
-      <BoardIllustration />
+      <div className="hero-art">
+        <img src="/pikaso/img/hero-art.png" alt="" />
+        <BoardIllustration />
+      </div>
     </section>
   );
 }
@@ -128,6 +131,9 @@ function Loop() {
   ];
   return (
     <section className="loop" id="loop">
+      <div className="cluster" aria-hidden="true">
+        <span /><span /><span /><span /><span /><span /><span /><span />
+      </div>
       <h2 className="ghost">The Loop</h2>
       <p className="statement">
         Three moves.
@@ -292,16 +298,19 @@ function Get() {
   };
   return (
     <section className="get" id="get">
-      <h2>Point. Don't describe.</h2>
-      <button className="cmd" onClick={copy} type="button">
-        <code>npx pikaso</code>
-        <span className="copy-hint">{copied ? "copied ✓" : "copy"}</span>
-      </button>
-      <p className="small">
-        Zero dependencies, nothing in your package.json. The board lives in a
-        gitignored <code>.pikaso/</code> — or pass <code>--global</code> and
-        your workspace never sees it at all.
-      </p>
+      <div className="get-copy">
+        <h2>Point. Don't describe.</h2>
+        <button className="cmd" onClick={copy} type="button">
+          <code>npx pikaso</code>
+          <span className="copy-hint">{copied ? "copied ✓" : "copy"}</span>
+        </button>
+        <p className="small">
+          Zero dependencies, nothing in your package.json. The board lives in a
+          gitignored <code>.pikaso/</code> — or pass <code>--global</code> and
+          your workspace never sees it at all.
+        </p>
+      </div>
+      <img className="get-art" src="/pikaso/img/pins-still.png" alt="" />
     </section>
   );
 }
