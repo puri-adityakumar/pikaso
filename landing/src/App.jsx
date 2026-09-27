@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 
 /* ---------- tiny bits ---------- */
 
@@ -86,15 +86,15 @@ function Hero() {
   return (
     <section className="hero" id="top">
       <div className="hero-copy">
-        <p className="eyebrow">Design review for agent-driven development</p>
-        <h1>Design review deserves better&nbsp;than chat.</h1>
-        <p className="lede">
-          Coding agents ship HTML shockingly fast — but your feedback travels as
+        <p className="eyebrow" data-reveal>Design review for agent-driven development</p>
+        <h1 data-reveal data-delay="1">Design review belongs on the mockup.</h1>
+        <p className="lede" data-reveal data-delay="2">
+          Coding agents ship HTML in seconds, but your feedback travels as
           prose, so intent gets lost and everything becomes rework. Pikaso puts
           the mockup on a canvas: <strong>point</strong> at any element, leave a
-          comment, and your agent applies every mark — live.
+          comment, and your agent applies every mark live.
         </p>
-        <div className="hero-cta">
+        <div className="hero-cta" data-reveal data-delay="3">
           <a className="btn btn-butter" href="#get">
             npx pikaso <Arrow />
           </a>
@@ -116,17 +116,17 @@ function Loop() {
     {
       n: "01",
       t: "Annotate",
-      d: "Click any element on the mockup and leave a comment. It becomes a pin, anchored to that element — not to a paragraph of prose.",
+      d: "Click any element on the mockup and leave a comment. It becomes a pin, anchored to that element, not to a paragraph of prose.",
     },
     {
       n: "02",
       t: "Apply",
-      d: "Your agent reads the pins as structured annotations — selector, position, comment — edits the mockup, and marks each one resolved. The board live-reloads.",
+      d: "Your agent reads the pins as structured annotations (selector, position, comment), edits the mockup, and marks each one resolved. The board live-reloads.",
     },
     {
       n: "03",
       t: "Lock",
-      d: "When the draft is right, lock it. Every decision condenses into a DESIGN-SPEC.md — design intent survives the handoff to implementation.",
+      d: "When the draft is right, lock it. Every decision condenses into a DESIGN-SPEC.md, so design intent survives the handoff to implementation.",
     },
   ];
   return (
@@ -134,15 +134,15 @@ function Loop() {
       <div className="cluster" aria-hidden="true">
         <span /><span /><span /><span /><span /><span /><span /><span />
       </div>
-      <h2 className="ghost">The Loop</h2>
-      <p className="statement">
+      <h2 className="ghost" data-reveal>The Loop</h2>
+      <p className="statement" data-reveal data-delay="1">
         Three moves.
         <br />
-        Zero lost intent.
+        Nothing lost.
       </p>
       <div className="loop-cards">
         {steps.map((s, i) => (
-          <article className={"card loop-card r" + i} key={s.n}>
+          <article className={"card loop-card r" + i} key={s.n} data-reveal data-delay={String(i)}>
             <span className="card-n">{s.n}</span>
             <h3>{s.t}</h3>
             <p>{s.d}</p>
@@ -158,13 +158,13 @@ function Loop() {
 function Why() {
   return (
     <section className="why split" id="why">
-      <div className="split-copy">
-        <p className="eyebrow">Why we're building this</p>
+      <div className="split-copy" data-reveal>
+        <p className="eyebrow">The lossy channel</p>
         <h2>Chat is a lossy channel for design.</h2>
         <p>
-          Agents are better at HTML than we expected — and worse at design
+          Agents are better at HTML than we expected, and worse at design
           review than we need. The loop today looks like this: the agent
-          generates a screen, you <em>describe</em> what's wrong ("the header
+          generates a screen, you describe what's wrong ("the header
           feels crowded, the CTA should pop more"), it guesses, you repeat.
         </p>
         <p>
@@ -175,12 +175,12 @@ function Why() {
           adjectives and starts applying coordinates.
         </p>
         <p className="small">
-          And when the draft locks, it doesn't evaporate into chat history — it
+          And when the draft locks, it doesn't evaporate into chat history; it
           becomes a spec the next agent can implement from.
         </p>
       </div>
       <div className="split-visual">
-        <div className="card code-card">
+        <div className="card code-card" data-reveal data-delay="1">
           <div className="code-head">frames/checkout/annotations.json</div>
           <pre>{`[
   {
@@ -201,20 +201,20 @@ function Why() {
 
 function Council() {
   const cast = [
-    ["Scout", "reads your codebase once, extracts the design system — or reports, cleanly, that there isn't one."],
+    ["Scout", "reads your codebase once, extracts the design system, or reports cleanly that there isn't one."],
     ["Art Director", "declares the design read, sets the dials, writes the brief. The only agent that talks to you."],
-    ["Builders ×N", "parallel, write-scoped agents — one per frame, sharing one token contract so the board looks like one product."],
-    ["The Council", "specialist critics convened per frame — typography, contrast, layout. Verdicts merged into one revision."],
+    ["Builders ×N", "parallel, write-scoped agents, one per frame, sharing one token contract so the board looks like one product."],
+    ["The Council", "specialist critics convened per frame: typography, contrast, layout. Verdicts merged into one revision."],
   ];
   return (
     <section className="council split reverse" id="council">
-      <div className="split-copy">
+      <div className="split-copy" data-reveal>
         <p className="eyebrow">The design council</p>
         <h2>A design team meets before you ever click.</h2>
         <p>
           First drafts shouldn't waste your first comment. Pikaso's agent cast
-          is small, opinionated, and scoped — built on our own orchestration,
-          running on your harness.
+          is small and opinionated, with tight scope: built on our own
+          orchestration, running on your harness.
         </p>
         <div className="cast">
           {cast.map(([t, d]) => (
@@ -226,7 +226,7 @@ function Council() {
         </div>
       </div>
       <div className="split-visual">
-        <div className="card council-card">
+        <div className="card council-card" data-reveal data-delay="1">
           <div className="code-head">art-director — design read</div>
           <pre className="dim-code">{`Reading this as: SaaS landing for
 technical buyers, Linear-clean,
@@ -247,15 +247,15 @@ Council convened: typography, contrast
 function Protocol() {
   return (
     <section className="protocol" id="protocol">
-      <p className="eyebrow light">Open protocol</p>
-      <h2>Any harness speaks Pikaso.</h2>
-      <p className="lede light">
-        The runtime state is files — the server is a bridge, the skill is text.
+      <p className="eyebrow light" data-reveal>Open protocol</p>
+      <h2 data-reveal>Any harness speaks Pikaso.</h2>
+      <p className="lede light" data-reveal data-delay="1">
+        The runtime state is files: the server is a bridge, the skill is text.
         Nothing is locked to one tool. Built and demoed on IBM Bob 2.0; works
         anywhere AGENTS.md is read.
       </p>
       <div className="proto-grid">
-        <div className="card dark-card">
+        <div className="card dark-card" data-reveal>
           <div className="code-head light">the whole contract</div>
           <pre>{`.pikaso/
 ├── project.json        # board: frames, x/y, status
@@ -265,7 +265,7 @@ function Protocol() {
         ├── mockup.html # agent-owned
         └── annotations.json  # you-owned`}</pre>
         </div>
-        <div className="card dark-card">
+        <div className="card dark-card" data-reveal data-delay="1">
           <div className="code-head light">the loop, as the agent sees it</div>
           <pre>{`1 read project.json
 2 for each frame with open annotations:
@@ -275,7 +275,7 @@ function Protocol() {
 3 batch applies — never per-comment`}</pre>
         </div>
       </div>
-      <div className="badges">
+      <div className="badges" data-reveal data-delay="2">
         <span className="badge on">Bob IDE</span>
         <span className="badge">Bob Shell</span>
         <span className="badge">Claude Code</span>
@@ -298,19 +298,22 @@ function Get() {
   };
   return (
     <section className="get" id="get">
-      <div className="get-copy">
+      <div className="get-copy" data-reveal>
         <h2>Point. Don't describe.</h2>
         <button className="cmd" onClick={copy} type="button">
           <code>npx pikaso</code>
           <span className="copy-hint">{copied ? "copied ✓" : "copy"}</span>
         </button>
+        <p className="proof">
+          The demo board: 9 pins, 2 batch applies, one locked DESIGN-SPEC.
+        </p>
         <p className="small">
-          Zero dependencies, nothing in your package.json. The board lives in a
-          gitignored <code>.pikaso/</code> — or pass <code>--global</code> and
+          No dependencies, nothing in your package.json. The board lives in a
+          gitignored <code>.pikaso/</code>, or pass <code>--global</code> and
           your workspace never sees it at all.
         </p>
       </div>
-      <img className="get-art" src="/pikaso/img/pins-still.png" alt="" />
+      <img className="get-art" src="/pikaso/img/pins-still.png" alt="" data-reveal data-delay="1" />
     </section>
   );
 }
@@ -336,6 +339,27 @@ function Footer() {
 }
 
 export default function App() {
+  useEffect(() => {
+    const els = Array.from(document.querySelectorAll("[data-reveal]"));
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      els.forEach((el) => el.classList.add("is-visible"));
+      return;
+    }
+    const io = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add("is-visible");
+            io.unobserve(entry.target);
+          }
+        });
+      },
+      { threshold: 0.15 }
+    );
+    els.forEach((el) => io.observe(el));
+    return () => io.disconnect();
+  }, []);
+
   return (
     <>
       <Nav />
