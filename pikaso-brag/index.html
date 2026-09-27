@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="en" data-resolution="landscape">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1920, height=1080" />
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Epilogue:wght@800&family=Lora:wght@400;500&family=Manrope:wght@400;600;700&display=swap" rel="stylesheet" />
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body { width: 1920px; height: 1080px; overflow: hidden; background: #fbf9f4; }
+      #root { width: 100%; height: 100%; position: relative; font-family: Manrope, sans-serif; color: #2b2a26; }
+      .clip { position: absolute; inset: 0; }
+      .grain::after {
+        content: ""; position: absolute; inset: 0; pointer-events: none;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.5'/%3E%3C/svg%3E");
+        opacity: 0.1; mix-blend-mode: multiply;
+      }
+      .center { width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 32px; }
+      h1 { font-family: Lora, Georgia, serif; font-weight: 400; font-size: 110px; letter-spacing: -0.02em; line-height: 1.06; }
+      .sub { font-size: 40px; color: #84837b; font-weight: 600; }
+      .stamp { font-family: Epilogue, sans-serif; font-weight: 800; font-size: 56px; background: #f8e9a9; padding: 18px 44px; border-radius: 10px; }
+      .dark { background: #1d1c19; } .dark h1 { color: #f4f2ea; }
+      .term { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 42px; color: #b9b7a8; background: #24231e; padding: 40px 60px; border-radius: 16px; width: 1100px; }
+      .term .ok { color: #62d96b; }
+      .imgcard { border-radius: 24px; box-shadow: 0 30px 70px rgba(0,0,0,0.3); overflow: hidden; }
+      .imgcard img { width: 760px; display: block; }
+      .row { display: flex; gap: 60px; align-items: center; }
+      .badge { border: 2px solid #3c3b33; color: #b9b7a8; padding: 12px 34px; border-radius: 999px; font-size: 30px; }
+      .badge.on { background: #62d96b; color: #2b2a26; border-color: #62d96b; font-weight: 700; }
+      .chip { font-family: ui-monospace, Menlo, monospace; font-size: 38px; background: #24231e; color: #f4f2ea; padding: 16px 40px; border-radius: 12px; }
+      .mint { background: #9fe7a4; } .butter { background: #f8e9a9; } .sky { background: #a9e8eb; }
+    </style>
+  </head>
+  <body>
+    <div id="root" data-composition-id="main" data-start="0" data-duration="20" data-width="1920" data-height="1080">
+
+      <div class="clip grain center dark" id="s1" data-start="0" data-duration="4.2" data-track-index="0">
+        <h1>We're all tokenmaxxing.</h1>
+        <p class="sub">building with AI, day and night</p>
+      </div>
+
+      <div class="clip grain center butter" id="s2" data-start="4.2" data-duration="4.6" data-track-index="0">
+        <div class="row">
+          <div class="imgcard"><img src="assets/slop-page.png" /></div>
+          <div>
+            <h1 style="font-size: 88px;">AI is bad at<br />frontend design.</h1>
+            <p class="stamp" style="display: inline-block; margin-top: 30px;">but great at making stuff</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="clip grain center dark" id="s3" data-start="8.8" data-duration="3.6" data-track-index="0">
+        <div class="term">
+          <div>&gt; make the CTA pop more</div>
+          <div>&gt; now make it tasteful<span style="color:#62d96b;">▌</span></div>
+          <div class="ok" style="margin-top: 24px;">words lose intent.</div>
+        </div>
+      </div>
+
+      <div class="clip grain center" id="s4" data-start="12.4" data-duration="3.4" data-track-index="0">
+        <div class="row">
+          <div class="imgcard" style="transform: rotate(-1.5deg);"><img src="assets/hero-art.png" style="width: 620px;" /></div>
+          <h1 style="color: #84837b;">So we built<br />Pikaso.</h1>
+        </div>
+      </div>
+
+      <div class="clip grain center mint" id="s5" data-start="15.8" data-duration="2.6" data-track-index="0">
+        <div class="row" style="gap: 90px;">
+          <h1 style="font-size: 96px;">ANNOTATE</h1>
+          <h1 style="font-size: 96px;">APPLY</h1>
+          <h1 style="font-size: 96px;">LOCK</h1>
+        </div>
+      </div>
+
+      <div class="clip grain center" id="s6" data-start="18.4" data-duration="1.6" data-track-index="0" style="background: #fbf9f4;">
+        <h1 style="color: #84837b;">Point. Don't describe.</h1>
+        <div class="chip">npx pikaso</div>
+        <div class="row" style="gap: 24px;">
+          <span class="badge on">Bob IDE</span><span class="badge">Claude Code</span><span class="badge">any AGENTS.md</span>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      const tl = gsap.timeline({ paused: true });
+
+      [["#s1", 0], ["#s2", 4.2], ["#s3", 8.8], ["#s4", 12.4], ["#s5", 15.8], ["#s6", 18.4]].forEach(([sel, at], i) => {
+        const dur = [4.2, 4.6, 3.6, 3.4, 2.6, 1.6][i];
+        tl.fromTo(sel, { opacity: 0 }, { opacity: 1, duration: 0.3 }, at);
+        if (i < 5) tl.to(sel, { opacity: 0, duration: 0.25 }, at + dur - 0.25);
+      });
+      tl.fromTo("#s2 .imgcard", { x: -80, opacity: 0 }, { x: 0, opacity: 1, duration: 0.6, ease: "power3.out" }, 4.4);
+      tl.fromTo("#s3 .term div", { opacity: 0, y: 14 }, { opacity: 1, y: 0, duration: 0.3, stagger: 0.5 }, 9.0);
+      tl.fromTo("#s4 h1", { opacity: 0, y: 30 }, { opacity: 1, y: 0, duration: 0.5 }, 12.7);
+      tl.fromTo("#s5 h1", { opacity: 0, scale: 0.4 }, { opacity: 1, scale: 1, duration: 0.4, ease: "back.out(2)", stagger: 0.55 }, 16.0);
+      tl.fromTo("#s6 .badge, #s6 .chip", { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: 0.35, stagger: 0.15 }, 18.6);
+
+      tl.seek(0);
+      window.__timelines = window.__timelines || {};
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>
