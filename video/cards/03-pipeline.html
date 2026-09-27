@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>pikaso · 03 pipeline</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Epilogue:wght@800&family=Lora:wght@400;500&family=Manrope:wght@400..700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#fbf9f4; --ink:#2b2a26; --muted:#84837b; --green:#62d96b; --mint:#9fe7a4;
+    --butter:#f8e9a9; --butter-deep:#f2cf62; --pink:#f4b8c0; --sky:#a9e8eb;
+    --dark:#1d1c19; --dark-ink:#f4f2ea;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{width:1280px;height:720px;overflow:hidden}
+  body{position:relative;background:var(--paper);color:var(--ink);font-family:'Manrope',sans-serif}
+
+  svg{position:absolute;left:0;top:96px;display:block}
+  .anim{transform-box:fill-box;transform-origin:50% 50%}
+
+  /* ---------- 20s master timeline (percent = t/20s) ---------- */
+  @keyframes kMock {0%,0%{opacity:0;transform:scale(.7)} 2.2%{opacity:1;transform:scale(1.05)} 3.5%,96.5%{opacity:1;transform:scale(1)} 98.5%,100%{opacity:0;transform:scale(.7)}}
+  @keyframes kPin  {0%,4%{opacity:0;transform:translateY(-120px)} 4.5%{opacity:1} 8%{opacity:1;transform:translateY(10px)} 9.5%,96.5%{opacity:1;transform:translateY(0)} 98.5%,100%{opacity:0;transform:translateY(-120px)}}
+  @keyframes kRobot{0%,16%{opacity:0;transform:scale(.6)} 18%{opacity:1;transform:scale(1.07)} 19.5%,96.5%{opacity:1;transform:scale(1)} 98.5%,100%{opacity:0;transform:scale(.6)}}
+  @keyframes kFile {0%,32%{opacity:0;transform:scale(.6)} 34%{opacity:1;transform:scale(1.07)} 35.5%,96.5%{opacity:1;transform:scale(1)} 98.5%,100%{opacity:0;transform:scale(.6)}}
+  @keyframes kBoard{0%,52%{opacity:0;transform:scale(.6)} 54%{opacity:1;transform:scale(1.07)} 55.5%,96.5%{opacity:1;transform:scale(1)} 98.5%,100%{opacity:0;transform:scale(.6)}}
+  @keyframes kLock {0%,74%{opacity:0;transform:scale(1.6) rotate(-8deg)} 76.5%{opacity:1;transform:scale(.94) rotate(2deg)} 78.5%,96.5%{opacity:1;transform:scale(1) rotate(0deg)} 98.5%,100%{opacity:0;transform:scale(1.6) rotate(-8deg)}}
+  @keyframes kDoc  {0%,86%{opacity:0;transform:scale(.6)} 88%{opacity:1;transform:scale(1.07)} 89.5%,96.5%{opacity:1;transform:scale(1)} 98.5%,100%{opacity:0;transform:scale(.6)}}
+
+  @keyframes kA1{0%,12%{opacity:0} 13.5%,96.5%{opacity:1} 98.5%,100%{opacity:0}}
+  @keyframes kA2{0%,28%{opacity:0} 29.5%,96.5%{opacity:1} 98.5%,100%{opacity:0}}
+  @keyframes kA3{0%,48%{opacity:0} 49.5%,96.5%{opacity:1} 98.5%,100%{opacity:0}}
+  @keyframes kA4{0%,71%{opacity:0} 72.5%,96.5%{opacity:1} 98.5%,100%{opacity:0}}
+  @keyframes kA5{0%,83%{opacity:0} 84.5%,96.5%{opacity:1} 98.5%,100%{opacity:0}}
+  @keyframes dash{to{stroke-dashoffset:-16}}
+
+  @keyframes kDiff{0%,39%{fill:#cfccc0} 41%,96.5%{fill:#f2cf62} 98.5%,100%{fill:#cfccc0}}
+  @keyframes kCell{0%,59.5%{fill:#f1efe8} 61%{fill:#a9e8eb} 63%{fill:#f1efe8} 64.5%,96.5%{fill:#a9e8eb} 98.5%,100%{fill:#f1efe8}}
+
+  .g-mock {animation:kMock 20s linear infinite}
+  .g-pin  {animation:kPin 20s linear infinite}
+  .g-robot{animation:kRobot 20s linear infinite}
+  .g-file {animation:kFile 20s linear infinite}
+  .g-board{animation:kBoard 20s linear infinite}
+  .g-lock {animation:kLock 20s linear infinite}
+  .g-doc  {animation:kDoc 20s linear infinite}
+  .a1{animation:kA1 20s linear infinite}
+  .a2{animation:kA2 20s linear infinite}
+  .a3{animation:kA3 20s linear infinite}
+  .a4{animation:kA4 20s linear infinite}
+  .a5{animation:kA5 20s linear infinite}
+  .fl{stroke-dasharray:7 9;animation:dash 1s linear infinite}
+  .diff{animation:kDiff 20s linear infinite}
+  .cell{animation:kCell 20s linear infinite}
+
+  /* ---------- stage labels: one at a time, ~4s hold each ---------- */
+  .labs{position:absolute;left:0;right:0;bottom:52px;height:48px}
+  .lab{position:absolute;top:0;font-weight:700;font-size:31px;letter-spacing:.3em;padding:0 0 8px .3em;
+    color:var(--ink);border-bottom:3px solid var(--ink);opacity:0;text-align:center}
+  .lA{left:0;width:426px;border-bottom-color:var(--mint);animation:kLabA 20s linear infinite}
+  .lB{left:427px;width:426px;border-bottom-color:var(--butter-deep);animation:kLabB 20s linear infinite}
+  .lC{left:854px;width:426px;border-bottom-color:var(--sky);animation:kLabC 20s linear infinite}
+  @keyframes kLabA{0%,3%{opacity:0;transform:translateY(16px)} 5%,27%{opacity:1;transform:translateY(0)} 29%,100%{opacity:0;transform:translateY(-8px)}}
+  @keyframes kLabB{0%,43%{opacity:0;transform:translateY(16px)} 45%,67%{opacity:1;transform:translateY(0)} 69%,100%{opacity:0;transform:translateY(-8px)}}
+  @keyframes kLabC{0%,73%{opacity:0;transform:translateY(16px)} 75%,96.5%{opacity:1;transform:translateY(0)} 98.5%,100%{opacity:0;transform:translateY(-8px)}}
+</style>
+</head>
+<body>
+<svg width="1280" height="440" viewBox="0 0 1280 440" fill="none">
+  <!-- arrows -->
+  <g class="a1">
+    <line class="fl" x1="187" y1="185" x2="244" y2="185" stroke="#2b2a26" stroke-width="3.5"/>
+    <polygon points="258,185 246,178 246,192" fill="#2b2a26"/>
+  </g>
+  <g class="a2">
+    <line class="fl" x1="376" y1="185" x2="468" y2="185" stroke="#2b2a26" stroke-width="3.5"/>
+    <polygon points="482,185 470,178 470,192" fill="#2b2a26"/>
+  </g>
+  <g class="a3">
+    <line class="fl" x1="590" y1="185" x2="669" y2="185" stroke="#2b2a26" stroke-width="3.5"/>
+    <polygon points="683,185 671,178 671,192" fill="#2b2a26"/>
+  </g>
+  <g class="a4">
+    <line class="fl" x1="815" y1="185" x2="884" y2="185" stroke="#2b2a26" stroke-width="3.5"/>
+    <polygon points="898,185 886,178 886,192" fill="#2b2a26"/>
+  </g>
+  <g class="a5">
+    <line class="fl" x1="1012" y1="185" x2="1096" y2="185" stroke="#2b2a26" stroke-width="3.5"/>
+    <polygon points="1110,185 1098,178 1098,192" fill="#2b2a26"/>
+  </g>
+
+  <!-- 1: mockup wireframe + dropping pin -->
+  <g transform="translate(100,185)">
+    <g class="anim g-mock">
+      <rect x="-75" y="-52" width="150" height="104" rx="10" fill="#ffffff" stroke="#2b2a26" stroke-width="3"/>
+      <line x1="-75" y1="-26" x2="75" y2="-26" stroke="#2b2a26" stroke-opacity=".3" stroke-width="2"/>
+      <rect x="-58" y="-12" width="64" height="9" rx="3" fill="#e5e2d8"/>
+      <rect x="-58" y="4" width="90" height="9" rx="3" fill="#e5e2d8"/>
+      <rect x="-58" y="20" width="44" height="9" rx="3" fill="#9fe7a4"/>
+    </g>
+    <g transform="translate(42,-48)">
+      <g class="anim g-pin">
+        <path d="M -13 -16 A 15 15 0 1 1 13 -16 L 0 18 Z" fill="#62d96b" stroke="#2b2a26" stroke-width="3" stroke-linejoin="round"/>
+        <circle cx="0" cy="-16" r="5" fill="#fbf9f4"/>
+      </g>
+    </g>
+  </g>
+
+  <!-- 2: robot head glyph -->
+  <g transform="translate(316,185)">
+    <g class="anim g-robot">
+      <line x1="0" y1="-42" x2="0" y2="-58" stroke="#2b2a26" stroke-width="3"/>
+      <circle cx="0" cy="-64" r="6" fill="#62d96b" stroke="#2b2a26" stroke-width="2"/>
+      <rect x="-48" y="-42" width="96" height="84" rx="20" fill="#ffffff" stroke="#2b2a26" stroke-width="3"/>
+      <circle cx="-18" cy="-6" r="7" fill="#2b2a26"/>
+      <circle cx="18" cy="-6" r="7" fill="#2b2a26"/>
+      <path d="M -14 18 H 14" stroke="#2b2a26" stroke-width="4" stroke-linecap="round"/>
+    </g>
+  </g>
+
+  <!-- 3: file icon with diff line turning butter-deep -->
+  <g transform="translate(532,185)">
+    <g class="anim g-file">
+      <path d="M -43 -52 H 15 L 43 -24 V 52 H -43 Z" fill="#ffffff" stroke="#2b2a26" stroke-width="3" stroke-linejoin="round"/>
+      <path d="M 15 -52 V -24 H 43 Z" fill="#f1efe8" stroke="#2b2a26" stroke-width="3" stroke-linejoin="round"/>
+      <rect x="-26" y="-8" width="52" height="9" rx="4" fill="#cfccc0"/>
+      <rect class="diff" x="-26" y="10" width="60" height="9" rx="4" fill="#cfccc0"/>
+      <rect x="-26" y="28" width="36" height="9" rx="4" fill="#cfccc0"/>
+    </g>
+  </g>
+
+  <!-- 4: board grid, cells flash sky -->
+  <g transform="translate(748,185)">
+    <g class="anim g-board">
+      <rect x="-55" y="-48" width="110" height="96" rx="12" fill="#ffffff" stroke="#2b2a26" stroke-width="3"/>
+      <rect class="cell" x="-42" y="-35" width="38" height="32" rx="5" fill="#f1efe8" stroke="#2b2a26" stroke-opacity=".25" stroke-width="2"/>
+      <rect class="cell" x="4" y="-35" width="38" height="32" rx="5" fill="#f1efe8" stroke="#2b2a26" stroke-opacity=".25" stroke-width="2"/>
+      <rect class="cell" x="-42" y="3" width="38" height="32" rx="5" fill="#f1efe8" stroke="#2b2a26" stroke-opacity=".25" stroke-width="2"/>
+      <rect class="cell" x="4" y="3" width="38" height="32" rx="5" fill="#f1efe8" stroke="#2b2a26" stroke-opacity=".25" stroke-width="2"/>
+    </g>
+  </g>
+
+  <!-- 5: lock icon -->
+  <g transform="translate(965,185)">
+    <g class="anim g-lock">
+      <path d="M -22 -12 V -30 A 22 22 0 0 1 22 -30 V -12" stroke="#2b2a26" stroke-width="5" stroke-linecap="round"/>
+      <rect x="-42" y="-12" width="84" height="58" rx="12" fill="#ffffff" stroke="#2b2a26" stroke-width="3"/>
+      <circle cx="0" cy="12" r="7" fill="#2b2a26"/>
+      <rect x="-3" y="14" width="6" height="16" rx="3" fill="#2b2a26"/>
+    </g>
+  </g>
+
+  <!-- 6: document labeled DESIGN-SPEC -->
+  <g transform="translate(1180,185)">
+    <g class="anim g-doc">
+      <rect x="-60" y="-48" width="120" height="96" rx="10" fill="#ffffff" stroke="#2b2a26" stroke-width="3"/>
+      <rect x="-42" y="-26" width="84" height="8" rx="4" fill="#e5e2d8"/>
+      <rect x="-42" y="-8" width="64" height="8" rx="4" fill="#e5e2d8"/>
+      <rect x="-42" y="10" width="74" height="8" rx="4" fill="#62d96b"/>
+      <text y="78" text-anchor="middle" font-family="Manrope, sans-serif" font-weight="700" font-size="15" letter-spacing="2" fill="#2b2a26">DESIGN-SPEC</text>
+    </g>
+  </g>
+</svg>
+
+<div class="labs">
+  <span class="lab lA">ANNOTATE</span>
+  <span class="lab lB">APPLY</span>
+  <span class="lab lC">LOCK</span>
+</div>
+</body>
+</html>
