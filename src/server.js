@@ -15,8 +15,8 @@
  */
 
 import { createServer } from 'node:http';
-import { readFileSync, existsSync, watch } from 'node:fs';
-import { join, extname, resolve } from 'node:path';
+import { readFileSync, existsSync, watch, mkdirSync } from 'node:fs';
+import { join, extname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { dirname } from 'node:path';
 import { homedir, tmpdir } from 'node:os';
@@ -180,22 +180,27 @@ function handleRequest(req, res, root, apiHandler) {
 
 /**
  * Watch the frames directory for mockup.html changes and broadcast SSE reload.
+ * The frames dir is created if missing so a fresh board gets live reload from
+ * the first frame onward. The returned watcher MUST be closed (startServer
+ * wires it to server 'close'); an open FSWatcher keeps the event loop alive.
  * @param {string} root  Board root.
+ * @returns {import('node:fs').FSWatcher|null}
  */
 function watchFrames(root) {
   const framesDir = join(root, 'frames');
-  if (!existsSync(framesDir)) return;
-
   try {
-    watch(framesDir, { recursive: true }, (eventType, filename) => {
+    mkdirSync(framesDir, { recursive: true });
+    const watcher = watch(framesDir, { recursive: true }, (eventType, filename) => {
       if (!filename || !filename.endsWith('mockup.html')) return;
       // filename is like "landing/mockup.html" on Linux or "landing\mockup.html" on Windows
       const parts = filename.replace(/\\/g, '/').split('/');
       const frameName = parts[0];
       broadcastSSE('reload', { frame: frameName });
     });
+    watcher.on('error', () => { /* dir removed mid-run: live reload just stops */ });
+    return watcher;
   } catch {
-    // frames dir may not exist yet; watcher will be set up on next server start
+    return null;
   }
 }
 
@@ -206,7 +211,7 @@ function watchFrames(root) {
 /**
  * Start the Pikaso HTTP server.
  * @param {{ port?: number, global?: boolean, tmp?: boolean, cwd?: string, root?: string }} opts
- * @returns {Promise<{ server: import('node:http').Server, root: string, port: number }>}
+ * @returns {Promise<{ server: import('node:http').Server, root: string, port: number, watcher: import('node:fs').FSWatcher|null }>}
  */
 export async function startServer(opts = {}) {
   const root = opts.root ?? resolveBoardRoot(opts);
@@ -238,7 +243,10 @@ export async function startServer(opts = {}) {
   const url = `http://localhost:${port}`;
   process.stdout.write(`\npikaso board running\n  ${url}\n  mode: ${mode}\n  root: ${root}\n\n`);
 
-  watchFrames(root);
+  const watcher = watchFrames(root);
 
-  return { server, root, port };
+  // An open FSWatcher keeps the event loop alive — tie its lifetime to the server.
+  server.on('close', () => { try { watcher?.close(); } catch { /* already closed */ } });
+
+  return { server, root, port, watcher };
 }

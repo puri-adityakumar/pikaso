@@ -15,7 +15,7 @@
     "node": ">=20"
   },
   "scripts": {
-    "test": "node --test 'test/**/*.test.js'"
+    "test": "node --test"
   },
   "keywords": ["design", "annotation", "mockup", "agent", "ibm-bob"],
   "license": "MIT"
