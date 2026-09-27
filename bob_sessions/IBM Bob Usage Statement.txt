@@ -1,5 +1,0 @@
-Pikaso was built with IBM Bob 2.0. We discussed the full design with Bob before writing any code — the decisions are written down in DECISIONS.md — and then built the tool with it in Agent mode: the board server, the annotation overlay, and the lock flow that turns a finished draft into a design spec.
-
-Bob also runs Pikaso itself. The product loop is Bob reading the annotations file, editing the mockup HTML, and marking each comment resolved. The lock button starts a Bob Shell session that begins the real implementation.
-
-Session summaries are in bob_sessions/.

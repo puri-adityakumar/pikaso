@@ -1,8 +1,0 @@
-file 's1.mp3'
-file 's2.mp3'
-file 's3.mp3'
-file 's4a.mp3'
-file 's4c.mp3'
-file 's4e.mp3'
-file 's4g.mp3'
-file 's5.mp3'
