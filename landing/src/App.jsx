@@ -102,7 +102,7 @@ function Hero() {
         </div>
       </div>
       <div className="hero-art">
-        <img src="/pikaso/img/hero-art.png" alt="" />
+        <img src="img/hero-art.png" alt="" />
         <BoardIllustration />
       </div>
     </section>
@@ -229,7 +229,7 @@ function Council() {
         <div className="bots-wrap">
           <img
             className="bots-art"
-            src="/pikaso/img/council-bots.png"
+            src="img/council-bots.png"
             alt="The Pikaso design council: four small robots, one for Scout, Art Director, Builder, and Critic"
           />
           <div className="card council-card">
@@ -320,7 +320,7 @@ function Get() {
           your workspace never sees it at all.
         </p>
       </div>
-      <img className="get-art" src="/pikaso/img/pins-still.png" alt="" data-reveal data-delay="1" />
+      <img className="get-art" src="img/pins-still.png" alt="" data-reveal data-delay="1" />
     </section>
   );
 }
