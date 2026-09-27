@@ -33,8 +33,10 @@ function atomicWriteText(filePath, text) {
  * @returns {{ agentCommand?: string | null } | null}
  */
 function readConfig(root) {
-  // Config may live in the workspace root (parent of .pikaso/) or in integrations/
+  // Config may live inside the board root, in the workspace root (parent of
+  // .pikaso/), or in the parent's integrations/ directory.
   const candidates = [
+    join(root, 'pikaso.config.json'),
     join(root, '..', 'integrations', 'pikaso.config.json'),
     join(root, '..', 'pikaso.config.json'),
   ];
@@ -162,15 +164,14 @@ Do not alter the mockup files. Reference them; implement from them.
  * @returns {{ method: 'agent' | 'clipboard' | 'stdout' }}
  */
 function dispatchPrompt(agentCommand, prompt) {
-  // Primary: agentCommand
+  // Primary: agentCommand — run as a shell command line so quoted arguments
+  // (e.g. node -e "script with spaces") survive intact.
   if (agentCommand) {
-    const parts = agentCommand.split(/\s+/);
-    const cmd = parts[0];
-    const args = parts.slice(1);
-    const result = spawnSync(cmd, args, {
+    const result = spawnSync(agentCommand, {
       input: prompt,
       encoding: 'utf8',
       timeout: 30_000,
+      shell: true,
     });
     if (result.status === 0) {
       return { method: 'agent' };

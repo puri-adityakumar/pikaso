@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import { strict as assert } from 'node:assert';
-import { mkdtempSync, existsSync, readFileSync, rmSync, mkdirSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, existsSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 
@@ -139,12 +139,11 @@ test('DESIGN-SPEC.md contains all frames and resolved annotation history', async
 
 test('fake agentCommand receives prompt on stdin', async () => {
   const root = makeTmp();
-  // Write a config that uses node to echo stdin to a temp file
+  // Write a config that uses node to echo stdin to a temp file.
+  // Config lives inside the temp root so it cannot leak into the shared OS tmpdir.
   const outFile = join(root, 'agent-out.txt');
-  const configDir = join(root, '..', 'integrations');
-  mkdirSync(configDir, { recursive: true });
   writeFileSync(
-    join(configDir, 'pikaso.config.json'),
+    join(root, 'pikaso.config.json'),
     JSON.stringify({
       agentCommand: `node -e "let d=''; process.stdin.on('data',c=>d+=c); process.stdin.on('end',()=>require('fs').writeFileSync('${outFile.replace(/\\/g, '\\\\')}',d))"`,
     }),
