@@ -1,5 +1,11 @@
 # Pikaso — Demo Video Plan & Recording Runbook
 
+> **STATUS (end of session):** chunks 2–4 were NOT captured on camera — the tab
+> recorder wedged on in-iframe/coordinate actions (full story: `HANDOVER.md`).
+> `pikaso-demo-broll-chunks-2-4.mp4` (stills-based, 10s) covers them in the edit.
+> The full annotate→apply→resolve→lock loop was verified via the HTTP API —
+> evidence in `evidence/`. Board currently ships **locked**; run §5 before re-takes.
+
 Handoff doc: everything needed to finish the demo video chunks and assemble the
 final demo. **Current state after this doc was pushed: chunk 1 is recorded and
 committed; chunks 2–4 are fully scripted below and need ~20 minutes to capture.**
