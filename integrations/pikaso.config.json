@@ -1,0 +1,11 @@
+{
+  "_comment": "Pikaso configuration template. Copy to your workspace and edit.",
+  "agentCommand": null,
+  "_agentCommand_examples": {
+    "bob_shell": "bob --non-interactive",
+    "claude_code": "claude --non-interactive",
+    "custom": "node path/to/agent-runner.js"
+  },
+  "boardRoot": ".pikaso",
+  "defaultPort": 7625
+}
