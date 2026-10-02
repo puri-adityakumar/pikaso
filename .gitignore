@@ -7,3 +7,4 @@ node_modules/
 pikaso-brag/snapshots/
 pikaso-brag/renders/frame-*.png
 pikaso-brag/renders/v*.png
+.zcode/
