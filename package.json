@@ -1,5 +1,5 @@
 {
-  "name": "pikaso",
+  "name": "pikaso-design",
   "version": "0.1.0",
   "description": "Agent-driven mockup board: annotate HTML frames, agents iterate, lock to implementation handoff",
   "type": "module",
