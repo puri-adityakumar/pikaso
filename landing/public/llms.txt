@@ -1,0 +1,24 @@
+# Pikaso
+
+> Agent-driven mockup board: annotate HTML frames, agents iterate, lock to implementation handoff.
+
+Pikaso is a design review loop for agent-driven development. An agent generates
+HTML mockups onto a Figma-style canvas board; the user clicks elements and leaves
+comments (pins); the agent reads the annotations, edits the mockup, and marks each
+pin resolved — until the user locks the draft into DESIGN-SPEC.md and starts the
+real implementation.
+
+- Install: `npx pikaso-design` (Node 20+, zero dependencies, MIT)
+- Repo: https://github.com/puri-adityakumar/pikaso
+- Site: https://pikaso-design.vercel.app
+
+## Docs (markdown, agent-friendly)
+
+- [Install](https://pikaso-design.vercel.app/docs/install.md): requirements, running the board, flags
+- [Quickstart](https://pikaso-design.vercel.app/docs/quickstart.md): zero-to-mockup walkthrough
+- [Board basics](https://pikaso-design.vercel.app/docs/board.md): pan/zoom canvas, frames, labels
+- [Annotations](https://pikaso-design.vercel.app/docs/annotations.md): pin format, resolving, API-created pins
+- [Lock & handoff](https://pikaso-design.vercel.app/docs/lock.md): DESIGN-SPEC.md and the implementation prompt
+- [Agent setup](https://pikaso-design.vercel.app/docs/agent-setup.md): `pikaso init`, the Design Council agents, config
+- [Pikaso Protocol](https://pikaso-design.vercel.app/docs/protocol.md): file layout, schemas, REST API, SSE events, apply loop
+- [Changelog](https://pikaso-design.vercel.app/docs/changelog.md): release history

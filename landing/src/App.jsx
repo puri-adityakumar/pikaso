@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { marked } from "marked";
 
 /* ---------- tiny bits ---------- */
 
@@ -12,7 +13,209 @@ const Arrow = ({ className = "" }) => (
   </svg>
 );
 
-function Nav() {
+/* ---------- hash router: "#/route" pages, bare "#anchor" home scrolling ---------- */
+
+function useRoute() {
+  const [hash, setHash] = useState(window.location.hash);
+  useEffect(() => {
+    const onChange = () => setHash(window.location.hash);
+    window.addEventListener("hashchange", onChange);
+    return () => window.removeEventListener("hashchange", onChange);
+  }, []);
+  if (hash.startsWith("#/")) {
+    return hash.slice(2).split("?")[0].replace(/\/+$/, "").toLowerCase();
+  }
+  return "home";
+}
+
+/* ---------- markdown ---------- */
+
+const MD_URL = (file) => new URL("docs/" + file, document.baseURI).href;
+
+function Markdown({ file }) {
+  const [html, setHtml] = useState("");
+  const [err, setErr] = useState(false);
+  useEffect(() => {
+    let live = true;
+    setHtml("");
+    setErr(false);
+    fetch(MD_URL(file))
+      .then((r) => (r.ok ? r.text() : Promise.reject(r.status)))
+      .then((t) => {
+        if (live) setHtml(marked.parse(t).replaceAll('href="/docs/', 'href="#/docs/').replaceAll(".md\"", "\""));
+      })
+      .catch(() => live && setErr(true));
+    return () => {
+      live = false;
+    };
+  }, [file]);
+  if (err) {
+    return (
+      <div className="page-body">
+        <p className="lede">This page drifted off — the markdown file didn't load.</p>
+      </div>
+    );
+  }
+  return <div className="md-body" dangerouslySetInnerHTML={{ __html: html }} />;
+}
+
+/* ---------- shared page chrome ---------- */
+
+function Page({ eyebrow, title, lede, children }) {
+  return (
+    <section className="page">
+      <div className="page-head">
+        <p className="eyebrow fade-in">{eyebrow}</p>
+        <h1 className="fade-in d1">{title}</h1>
+        {lede && <p className="lede fade-in d2">{lede}</p>}
+      </div>
+      {children}
+    </section>
+  );
+}
+
+/* ---------- docs ---------- */
+
+const DOC_PAGES = [
+  ["install", "Install"],
+  ["quickstart", "Quickstart"],
+  ["board", "Board basics"],
+  ["annotations", "Annotations"],
+  ["lock", "Lock & handoff"],
+  ["agent-setup", "Agent setup"],
+  ["protocol", "Pikaso Protocol"],
+  ["changelog", "Changelog"],
+];
+
+function Docs({ sub }) {
+  const slug = DOC_PAGES.some(([s]) => s === sub) ? sub : "install";
+  const meta = DOC_PAGES.find(([s]) => s === slug);
+  return (
+    <section className="page docs-page">
+      <div className="docs-layout">
+        <aside className="docs-side">
+          <p className="side-title">Docs</p>
+          {DOC_PAGES.map(([s, label]) => (
+            <a
+              key={s}
+              className={"side-link" + (s === slug ? " active" : "")}
+              href={"#/docs/" + s}
+            >
+              {label}
+            </a>
+          ))}
+          <a className="side-link raw" href={"docs/" + slug + ".md"} target="_blank" rel="noreferrer">
+            view raw ↗
+          </a>
+        </aside>
+        <article className="docs-content">
+          <div className="code-card md-file" aria-hidden="true">
+            <div className="code-head">docs/{slug}.md</div>
+          </div>
+          <Markdown file={slug + ".md"} />
+          <nav className="doc-pager">
+            {DOC_PAGES.map(([s, label], i) =>
+              s === slug && DOC_PAGES[i + 1] ? (
+                <a className="btn btn-butter" key="next" href={"#/docs/" + DOC_PAGES[i + 1][0]}>
+                  Next: {DOC_PAGES[i + 1][1]} <Arrow />
+                </a>
+              ) : null
+            )}
+          </nav>
+        </article>
+      </div>
+    </section>
+  );
+}
+
+/* ---------- examples ---------- */
+
+function Examples() {
+  const shots = [
+    ["img/shot-frames.png", "The board", "Three frames mid-review — live labels count open pins per frame."],
+    ["img/shot-pin.png", "The pin", "Click an element, leave a comment. The pin stores the selector, not a screenshot."],
+    ["img/council-bots.png", "The council", "Scout, Art Director, Builders, Critics — a design team that meets before you click."],
+    ["img/pins-still.png", "The spec", "Lock condenses every resolved pin into DESIGN-SPEC.md for the implementation agent."],
+  ];
+  return (
+    <Page
+      eyebrow="Examples"
+      title="Pikaso in the wild."
+      lede="The demo board, real pins, and the artifacts they turn into. Everything below came out of one working session."
+    >
+      <div className="video-shell fade-in d2">
+        <video src="img/demo.mp4" controls preload="metadata" poster="img/pins-still.png" />
+        <p className="small video-cap">The 1:46 demo: annotate → apply → live reload → lock.</p>
+      </div>
+      <div className="gallery">
+        {shots.map(([src, t, d], i) => (
+          <figure className={"card gallery-card fade-in d" + ((i % 3) + 1)} key={t}>
+            <img src={src} alt={t} loading="lazy" />
+            <figcaption>
+              <h3>{t}</h3>
+              <p>{d}</p>
+            </figcaption>
+          </figure>
+        ))}
+      </div>
+      <div className="examples-foot">
+        <div className="card code-card fade-in d1">
+          <div className="code-head">what the agent receives</div>
+          <pre>{`[
+  {
+    "selector": "header > nav > button.cta",
+    "box": { "x": 412, "y": 88, "w": 96, "h": 32 },
+    "text": "full-width, orange",
+    "status": "open"
+  }
+]`}</pre>
+        </div>
+        <div className="examples-note fade-in d2">
+          <h3>Building an agent, not using one?</h3>
+          <p>
+            The whole board is files and REST. Point your harness at{" "}
+            <a href="llms.txt">llms.txt</a> — an index of the protocol and every
+            doc as plain markdown — and it can drive Pikaso without a browser.
+          </p>
+          <a className="ghost-link" href="#/docs/protocol">Read the protocol</a>
+        </div>
+      </div>
+    </Page>
+  );
+}
+
+/* ---------- changelog ---------- */
+
+function Changelog() {
+  return (
+    <Page
+      eyebrow="Changelog"
+      title="What shipped."
+      lede="Newest first. Raw markdown at docs/changelog.md — and llms.txt for agents."
+    >
+      <div className="no-md-title"><Markdown file="changelog.md" /></div>
+    </Page>
+  );
+}
+
+/* ---------- protocol page ---------- */
+
+function ProtocolPage() {
+  return (
+    <Page
+      eyebrow="Open protocol"
+      title="Any harness speaks Pikaso."
+      lede="The runtime state is files: the server is a bridge, the skill is text. Nothing is locked to one tool."
+    >
+      <div className="no-md-title"><Markdown file="protocol.md" /></div>
+    </Page>
+  );
+}
+
+/* ---------- nav + hero board illustration (unchanged design) ---------- */
+
+function Nav({ route }) {
+  const onDocs = route === "docs" || route.startsWith("docs/");
   return (
     <header className="nav">
       <a className="brand" href="#top">
@@ -22,7 +225,9 @@ function Nav() {
         <a href="#loop">How it works</a>
         <a href="#why">Why</a>
         <a href="#council">Council</a>
-        <a href="#protocol">Protocol</a>
+        <a className={onDocs ? "nav-on" : ""} href="#/docs">Docs</a>
+        <a className={route === "examples" ? "nav-on" : ""} href="#/examples">Examples</a>
+        <a className={route === "changelog" ? "nav-on" : ""} href="#/changelog">Changelog</a>
       </nav>
       <div className="nav-cta">
         <a className="ghost-link" href="https://github.com/puri-adityakumar/pikaso">GitHub</a>
@@ -31,8 +236,6 @@ function Nav() {
     </header>
   );
 }
-
-/* ---------- hero board illustration (pure CSS, the actual product) ---------- */
 
 function BoardIllustration() {
   return (
@@ -96,7 +299,7 @@ function Hero() {
         </p>
         <div className="hero-cta" data-reveal data-delay="3">
           <a className="btn btn-butter" href="#get">
-            npx pikaso <Arrow />
+            npx pikaso-design <Arrow />
           </a>
           <a className="ghost-link" href="#loop">See the loop</a>
         </div>
@@ -290,6 +493,9 @@ function Protocol() {
         <span className="badge">Cursor</span>
         <span className="badge">any AGENTS.md</span>
       </div>
+      <p className="proto-more" data-reveal data-delay="2">
+        <a className="ghost-link light" href="#/protocol">Read the full protocol spec →</a>
+      </p>
     </section>
   );
 }
@@ -299,7 +505,7 @@ function Protocol() {
 function Get() {
   const [copied, setCopied] = useState(false);
   const copy = () => {
-    navigator.clipboard?.writeText("npx pikaso").catch(() => {});
+    navigator.clipboard?.writeText("npx pikaso-design").catch(() => {});
     setCopied(true);
     setTimeout(() => setCopied(false), 1600);
   };
@@ -308,7 +514,7 @@ function Get() {
       <div className="get-copy" data-reveal>
         <h2>Point. Don't describe.</h2>
         <button className="cmd" onClick={copy} type="button">
-          <code>npx pikaso</code>
+          <code>npx pikaso-design</code>
           <span className="copy-hint">{copied ? "copied ✓" : "copy"}</span>
         </button>
         <p className="proof">
@@ -333,19 +539,19 @@ function Footer() {
         <span className="dim">· MIT</span>
       </div>
       <div className="foot-right">
-        <span>
-          Built for the{" "}
-          <a href="https://lablab.ai/ai-hackathons/ibm-bob-2-hackathon">
-            IBM Bob 2.0 Hackathon
-          </a>{" "}
-          · Sept 25–27 2026 · built with Bob, on Bob
-        </span>
+        <a href="#/docs">Docs</a>
+        <a href="#/examples">Examples</a>
+        <a href="#/changelog">Changelog</a>
+        <a href="llms.txt">llms.txt</a>
+        <a href="https://github.com/puri-adityakumar/pikaso">GitHub</a>
       </div>
     </footer>
   );
 }
 
 export default function App() {
+  const route = useRoute();
+
   useEffect(() => {
     const els = Array.from(document.querySelectorAll("[data-reveal]"));
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
@@ -365,11 +571,58 @@ export default function App() {
     );
     els.forEach((el) => io.observe(el));
     return () => io.disconnect();
-  }, []);
+  }, [route]);
+
+  useEffect(() => {
+    const hash = window.location.hash;
+    if (hash.startsWith("#/")) {
+      window.scrollTo(0, 0);
+    } else if (hash.length > 1) {
+      const el = document.getElementById(hash.slice(1));
+      if (el) el.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [route]);
+
+  if (route === "docs" || route.startsWith("docs/")) {
+    return (
+      <>
+        <Nav route={route} />
+        <main><Docs sub={route.slice(5)} /></main>
+        <Footer />
+      </>
+    );
+  }
+  if (route === "examples") {
+    return (
+      <>
+        <Nav route={route} />
+        <main><Examples /></main>
+        <Footer />
+      </>
+    );
+  }
+  if (route === "changelog") {
+    return (
+      <>
+        <Nav route={route} />
+        <main><Changelog /></main>
+        <Footer />
+      </>
+    );
+  }
+  if (route === "protocol") {
+    return (
+      <>
+        <Nav route={route} />
+        <main><ProtocolPage /></main>
+        <Footer />
+      </>
+    );
+  }
 
   return (
     <>
-      <Nav />
+      <Nav route={route} />
       <main>
         <Hero />
         <Loop />
