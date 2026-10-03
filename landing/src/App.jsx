@@ -61,9 +61,9 @@ function Markdown({ file }) {
 
 /* ---------- shared page chrome ---------- */
 
-function Page({ eyebrow, title, lede, children }) {
+function Page({ eyebrow, title, lede, center, children }) {
   return (
-    <section className="page">
+    <section className={"page" + (center ? " page-center" : "")}>
       <div className="page-head">
         <p className="eyebrow fade-in">{eyebrow}</p>
         <h1 className="fade-in d1">{title}</h1>
@@ -189,6 +189,7 @@ function Examples() {
 function Changelog() {
   return (
     <Page
+      center
       eyebrow="Changelog"
       title="What shipped."
       lede="Newest first. Raw markdown at docs/changelog.md — and llms.txt for agents."
@@ -203,6 +204,7 @@ function Changelog() {
 function ProtocolPage() {
   return (
     <Page
+      center
       eyebrow="Open protocol"
       title="Any harness speaks Pikaso."
       lede="The runtime state is files: the server is a bridge, the skill is text. Nothing is locked to one tool."

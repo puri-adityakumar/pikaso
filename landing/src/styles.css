@@ -637,3 +637,9 @@ pre { font-family: var(--mono); font-size: 0.82rem; line-height: 1.6; white-spac
   .fade-in.d3 { animation-delay: 0.24s; }
 }
 .no-md-title .md-body > h1:first-child { display: none; }
+
+/* ---------- centered page variant (changelog / protocol) ---------- */
+.page-center .page-head { text-align: center; }
+.page-center .page-head .lede { margin-inline: auto; }
+.page-center .md-body,
+.page-center .no-md-title .md-body { margin-inline: auto; }
