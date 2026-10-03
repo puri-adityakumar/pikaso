@@ -16,6 +16,7 @@ real implementation.
 
 - [Install](https://pikaso-design.vercel.app/docs/install.md): requirements, running the board, flags
 - [Quickstart](https://pikaso-design.vercel.app/docs/quickstart.md): zero-to-mockup walkthrough
+- [User flows](https://pikaso-design.vercel.app/docs/flows.md): ASCII diagrams of all four scenarios (generate, annotate, apply, lock)
 - [Board basics](https://pikaso-design.vercel.app/docs/board.md): pan/zoom canvas, frames, labels
 - [Annotations](https://pikaso-design.vercel.app/docs/annotations.md): pin format, resolving, API-created pins
 - [Lock & handoff](https://pikaso-design.vercel.app/docs/lock.md): DESIGN-SPEC.md and the implementation prompt

@@ -79,6 +79,7 @@ function Page({ eyebrow, title, lede, center, children }) {
 const DOC_PAGES = [
   ["install", "Install"],
   ["quickstart", "Quickstart"],
+  ["flows", "User flows"],
   ["board", "Board basics"],
   ["annotations", "Annotations"],
   ["lock", "Lock & handoff"],
