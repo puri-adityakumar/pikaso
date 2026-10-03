@@ -124,6 +124,78 @@
     }
     #theme-toggle:hover { transform: translateY(-1px); background: var(--field); }
 
+    /* mode switch — Canvas | HTML segmented control */
+    #mode-switch {
+      display: flex;
+      background: var(--field);
+      border: 1px solid var(--edge);
+      border-radius: 8px;
+      padding: 2px;
+      gap: 2px;
+    }
+    .mode-btn {
+      font: 700 12px/1 var(--sans);
+      border: none;
+      background: none;
+      color: var(--muted);
+      border-radius: 6px;
+      padding: 6px 12px;
+      cursor: pointer;
+      transition: background 0.15s ease, color 0.15s ease, box-shadow 0.15s var(--ease);
+    }
+    .mode-btn.active {
+      background: var(--card);
+      color: var(--ink);
+      box-shadow: 0 1px 4px rgba(43, 42, 38, 0.14);
+    }
+
+    /* ── HTML mode — mockups as a browsable site ─────────────────────── */
+    #site-view {
+      display: none;
+      position: fixed;
+      top: 52px; left: 0; right: 0; bottom: 0;
+      flex-direction: column;
+    }
+    body[data-mode="html"] #site-view { display: flex; }
+    body[data-mode="html"] #board-root,
+    body[data-mode="html"] #zoom-pill { display: none; }
+    #site-bar {
+      height: 44px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 0 20px;
+      border-bottom: 1px solid var(--hairline);
+      background: var(--card);
+    }
+    #site-route {
+      font-family: var(--mono);
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--dark-ink);
+      background: var(--dark);
+      border-radius: 7px;
+      padding: 6px 12px;
+    }
+    #site-bar .spacer { flex: 1; }
+    #site-pages {
+      font: 600 12.5px/1 var(--sans);
+      color: var(--ink);
+      background: var(--card);
+      border: 1px solid var(--edge);
+      border-radius: 8px;
+      padding: 7px 10px;
+      cursor: pointer;
+      outline: none;
+      max-width: 260px;
+    }
+    #site-frame {
+      flex: 1;
+      width: 100%;
+      border: none;
+      background: #fff;
+    }
+
     /* new-frame strip */
     #new-frame-strip {
       display: flex;
@@ -398,6 +470,10 @@
     <span class="board-name" id="board-name">board</span>
     <span class="spacer"></span>
     <span id="bob-status">Bob: idle</span>
+    <div id="mode-switch" role="group" aria-label="View mode">
+      <button id="mode-canvas" class="mode-btn active" type="button">Canvas</button>
+      <button id="mode-html" class="mode-btn" type="button">HTML</button>
+    </div>
     <button id="theme-toggle" type="button" title="Toggle light / dark" aria-label="Toggle theme">☾</button>
     <div id="new-frame-strip">
       <input id="new-frame-input" type="text" placeholder="Describe the screen…" autocomplete="off">
@@ -408,6 +484,16 @@
   <!-- Board canvas -->
   <div id="board-root">
     <div id="canvas"></div>
+  </div>
+
+  <!-- HTML mode: mockups as a browsable site -->
+  <div id="site-view">
+    <div id="site-bar">
+      <span id="site-route">/site/index.html</span>
+      <span class="spacer"></span>
+      <select id="site-pages" aria-label="Jump to page"></select>
+    </div>
+    <iframe id="site-frame" src="about:blank" title="Mockup site"></iframe>
   </div>
 
   <!-- Zoom pill -->

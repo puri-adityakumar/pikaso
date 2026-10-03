@@ -52,6 +52,15 @@ const modalCopyBtn  = /** @type {HTMLButtonElement} */ (document.getElementById(
 const modalCancelBtn = /** @type {HTMLButtonElement} */ (document.getElementById('modal-cancel-btn'));
 const toastEl       = /** @type {HTMLDivElement}    */ (document.getElementById('toast'));
 
+// HTML mode
+const modeCanvasBtn = /** @type {HTMLButtonElement} */ (document.getElementById('mode-canvas'));
+const modeHtmlBtn   = /** @type {HTMLButtonElement} */ (document.getElementById('mode-html'));
+const siteFrame     = /** @type {HTMLIFrameElement} */ (document.getElementById('site-frame'));
+const siteRouteEl   = /** @type {HTMLSpanElement}   */ (document.getElementById('site-route'));
+const sitePagesEl   = /** @type {HTMLSelectElement} */ (document.getElementById('site-pages'));
+
+const MODE_KEY = 'pikaso-mode';
+
 // ---------------------------------------------------------------------------
 // Canvas transform
 // ---------------------------------------------------------------------------
@@ -438,6 +447,69 @@ modalCopyBtn.addEventListener('click', async () => {
 });
 
 // ---------------------------------------------------------------------------
+// HTML mode — mockups as a browsable multi-page site
+// ---------------------------------------------------------------------------
+
+/**
+ * Populate the page-jump select from the current project frames.
+ * The entry page (/site/index.html) is the frame named index/home, else the first.
+ * @param {Array<{name:string}>} frames
+ */
+function populateSitePages(frames) {
+  const entry = frames.find(f => f.name === 'index' || f.name === 'home') ?? frames[0];
+  sitePagesEl.innerHTML = '';
+  if (entry) {
+    const opt = document.createElement('option');
+    opt.value = 'index.html';
+    opt.textContent = `index.html — ${entry.name}`;
+    sitePagesEl.appendChild(opt);
+  }
+  for (const f of frames) {
+    const opt = document.createElement('option');
+    opt.value = `${f.name}.html`;
+    opt.textContent = `${f.name}.html`;
+    sitePagesEl.appendChild(opt);
+  }
+}
+
+/**
+ * Switch between canvas view and HTML (site) view.
+ * @param {'canvas'|'html'} mode
+ */
+function setMode(mode) {
+  document.body.dataset.mode = mode;
+  const html = mode === 'html';
+  modeCanvasBtn.classList.toggle('active', !html);
+  modeHtmlBtn.classList.toggle('active', html);
+  try { localStorage.setItem(MODE_KEY, mode); } catch { /* private mode */ }
+
+  if (html) {
+    // First entry into HTML mode (or a fresh board): load the entry page.
+    if (siteFrame.src === 'about:blank' || siteFrame.getAttribute('src') === 'about:blank') {
+      siteFrame.src = '/site/index.html';
+    }
+    apiFetch('/api/project').then(p => populateSitePages(p.frames ?? [])).catch(() => {});
+  }
+}
+
+modeCanvasBtn.addEventListener('click', () => setMode('canvas'));
+modeHtmlBtn.addEventListener('click', () => setMode('html'));
+
+// Route chip + page select sync while browsing the site
+siteFrame.addEventListener('load', () => {
+  try {
+    const path = siteFrame.contentWindow.location.pathname;
+    siteRouteEl.textContent = path;
+    const file = path.replace(/^\/site\//, '');
+    if (file) sitePagesEl.value = file;
+  } catch { /* cross-origin can't happen (same server), but stay safe */ }
+});
+
+sitePagesEl.addEventListener('change', () => {
+  siteFrame.src = '/site/' + sitePagesEl.value;
+});
+
+// ---------------------------------------------------------------------------
 // SSE live reload
 // ---------------------------------------------------------------------------
 
@@ -451,6 +523,10 @@ function connectSSE() {
       if (iframe) {
         // Force reload of just this iframe
         iframe.src = iframe.src; // eslint-disable-line no-self-assign
+      }
+      // HTML mode: reload the site pane so the edit shows up there too
+      if (document.body.dataset.mode === 'html') {
+        siteFrame.src = siteFrame.src; // eslint-disable-line no-self-assign
       }
     } catch { /* malformed event */ }
   });
@@ -493,6 +569,11 @@ async function init() {
     // Board may not have any frames yet — that's fine
     console.warn('[pikaso] Could not load project:', err.message);
   }
+
+  // Restore last view mode (canvas is the default)
+  let savedMode = 'canvas';
+  try { savedMode = localStorage.getItem(MODE_KEY) === 'html' ? 'html' : 'canvas'; } catch { /* private mode */ }
+  setMode(savedMode);
 
   connectSSE();
 }

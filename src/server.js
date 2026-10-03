@@ -7,6 +7,9 @@
  *   GET  /board.js                 → public/board.js
  *   GET  /annotate.js              → public/annotate.js
  *   GET  /frames/:name/mockup.html → HTML with annotate.js injected (never written to disk)
+ *   GET  /site/                → redirect to /site/index.html (HTML mode entry)
+ *   GET  /site/index.html      → entry frame as a site page (annotate.js injected)
+ *   GET  /site/:name.html      → frame :name as a site page (annotate.js injected)
  *   GET  /api/project              → project.json
  *   GET  /api/annotations/:name    → frames/<name>/annotations.json
  *   GET  /events                   → SSE stream
@@ -143,6 +146,41 @@ function handleRequest(req, res, root, apiHandler) {
     }
     const html = readFileSync(mockupPath, 'utf8');
     const injected = injectScript(html);
+    res.writeHead(200, { 'Content-Type': MIME['.html'] });
+    res.end(injected);
+    return;
+  }
+
+  // HTML mode: mockups as a browsable multi-page site
+  //   /site/            → redirect to /site/index.html
+  //   /site/index.html  → entry frame (named index/home, else the first frame)
+  //   /site/<name>.html → that frame's mockup, annotate.js injected
+  if (req.method === 'GET' && (pathname === '/site' || pathname === '/site/')) {
+    res.writeHead(302, { Location: '/site/index.html' });
+    res.end();
+    return;
+  }
+  const siteMatch = pathname.match(/^\/site\/([^/]+\.html)$/);
+  if (req.method === 'GET' && siteMatch) {
+    const file = decodeURIComponent(siteMatch[1]);
+    let mockupPath = null;
+    if (file === 'index.html') {
+      try {
+        const project = loadProject(root);
+        const frames = project.frames ?? [];
+        const entry = frames.find(f => f.name === 'index' || f.name === 'home') ?? frames[0];
+        if (entry) mockupPath = join(root, 'frames', entry.name, 'mockup.html');
+      } catch { /* no project yet → falls through to 404 */ }
+    } else {
+      const name = file.slice(0, -'.html'.length);
+      mockupPath = join(root, 'frames', name, 'mockup.html');
+    }
+    if (!mockupPath || mockupPath.includes('..') || !existsSync(mockupPath)) {
+      res.writeHead(404, { 'Content-Type': MIME['.html'] });
+      res.end('<h1>404 — page not found</h1>');
+      return;
+    }
+    const injected = injectScript(readFileSync(mockupPath, 'utf8'));
     res.writeHead(200, { 'Content-Type': MIME['.html'] });
     res.end(injected);
     return;

@@ -135,6 +135,102 @@ test('GET /frames/unknown/mockup.html returns 404', async () => {
   }
 });
 
+// ---------------------------------------------------------------------------
+// HTML mode (/site/*)
+// ---------------------------------------------------------------------------
+
+test('GET /site/ redirects to /site/index.html', async () => {
+  const root = tmpRoot();
+  let server;
+  try {
+    ({ server } = await startServer({ port: 0, root }));
+    const { port } = server.address();
+    const res = await fetch(`http://127.0.0.1:${port}/site/`, { redirect: 'manual' });
+    assert.equal(res.status, 302);
+    assert.equal(res.headers.get('location'), '/site/index.html');
+  } finally {
+    server?.close();
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test('GET /site/index.html serves the first frame with annotate injected', async () => {
+  const root = tmpRoot();
+  let server;
+  try {
+    createFrame(root, 'landing');
+    writeFileSync(join(root, 'frames', 'landing', 'mockup.html'), '<html><body><h1>Entry</h1></body></html>', 'utf8');
+    createFrame(root, 'about');
+    writeFileSync(join(root, 'frames', 'about', 'mockup.html'), '<html><body><h1>About</h1></body></html>', 'utf8');
+
+    ({ server } = await startServer({ port: 0, root }));
+    const { port } = server.address();
+    const res = await get(port, '/site/index.html');
+    assert.equal(res.status, 200);
+    assert.ok(res.headers.get('content-type')?.includes('text/html'));
+    const text = await res.text();
+    assert.ok(text.includes('<h1>Entry</h1>'), 'entry frame content served');
+    assert.ok(text.includes('annotate.js'), 'annotate.js injected');
+  } finally {
+    server?.close();
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test('GET /site/index.html prefers the frame named index', async () => {
+  const root = tmpRoot();
+  let server;
+  try {
+    createFrame(root, 'landing');
+    writeFileSync(join(root, 'frames', 'landing', 'mockup.html'), '<html><body><h1>Landing</h1></body></html>', 'utf8');
+    createFrame(root, 'index');
+    writeFileSync(join(root, 'frames', 'index', 'mockup.html'), '<html><body><h1>Home</h1></body></html>', 'utf8');
+
+    ({ server } = await startServer({ port: 0, root }));
+    const { port } = server.address();
+    const res = await get(port, '/site/index.html');
+    const text = await res.text();
+    assert.ok(text.includes('<h1>Home</h1>'), 'index frame wins over first frame');
+  } finally {
+    server?.close();
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test('GET /site/:name.html serves that frame as a page', async () => {
+  const root = tmpRoot();
+  let server;
+  try {
+    createFrame(root, 'pricing');
+    writeFileSync(join(root, 'frames', 'pricing', 'mockup.html'), '<html><body><h1>Pricing</h1></body></html>', 'utf8');
+
+    ({ server } = await startServer({ port: 0, root }));
+    const { port } = server.address();
+    const res = await get(port, '/site/pricing.html');
+    assert.equal(res.status, 200);
+    const text = await res.text();
+    assert.ok(text.includes('<h1>Pricing</h1>'));
+    assert.ok(text.includes('annotate.js'));
+  } finally {
+    server?.close();
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test('GET /site/unknown.html returns 404', async () => {
+  const root = tmpRoot();
+  let server;
+  try {
+    ({ server } = await startServer({ port: 0, root }));
+    const { port } = server.address();
+    const res = await get(port, '/site/unknown.html');
+    assert.equal(res.status, 404);
+  } finally {
+    server?.close();
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
 test('GET /api/project returns project JSON', async () => {
   const root = tmpRoot();
   let server;
