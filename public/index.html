@@ -149,51 +149,107 @@
       box-shadow: 0 1px 4px rgba(43, 42, 38, 0.14);
     }
 
-    /* ── HTML mode — mockups as a browsable site ─────────────────────── */
-    #site-view {
-      display: none;
-      position: fixed;
-      top: 52px; left: 0; right: 0; bottom: 0;
-      flex-direction: column;
-    }
-    body[data-mode="html"] #site-view { display: flex; }
+    /* ── HTML mode — the design sheet: normal scrolling page of mockups ── */
+    body[data-mode="html"] { overflow-y: auto; }
     body[data-mode="html"] #board-root,
     body[data-mode="html"] #zoom-pill { display: none; }
-    #site-bar {
-      height: 44px;
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      padding: 0 20px;
-      border-bottom: 1px solid var(--hairline);
-      background: var(--card);
+    #sheet-view {
+      display: none;
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 76px 24px 120px;
     }
-    #site-route {
-      font-family: var(--mono);
-      font-size: 12px;
-      font-weight: 600;
-      color: var(--dark-ink);
-      background: var(--dark);
-      border-radius: 7px;
-      padding: 6px 12px;
-    }
-    #site-bar .spacer { flex: 1; }
-    #site-pages {
-      font: 600 12.5px/1 var(--sans);
+    body[data-mode="html"] #sheet-view { display: block; }
+    .sheet-title {
+      font-family: var(--serif);
+      font-weight: 400;
+      font-size: 22px;
       color: var(--ink);
+      margin: 0 0 4px;
+    }
+    .sheet-sub {
+      font-size: 13px;
+      color: var(--muted);
+      margin: 0 0 28px;
+    }
+    .sheet-section {
       background: var(--card);
       border: 1px solid var(--edge);
-      border-radius: 8px;
-      padding: 7px 10px;
-      cursor: pointer;
-      outline: none;
-      max-width: 260px;
+      border-radius: 14px;
+      box-shadow: 0 16px 36px rgba(43, 42, 38, 0.1);
+      margin: 0 0 36px;
+      overflow: hidden;
     }
-    #site-frame {
-      flex: 1;
-      width: 100%;
-      border: none;
+    .sheet-head {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--hairline);
+    }
+    .sheet-dot {
+      width: 10px; height: 10px;
+      border-radius: 50%;
+      flex: none;
+      box-shadow: inset -1px -2px 2px rgba(0, 0, 0, 0.22), inset 1px 2px 2px rgba(255, 255, 255, 0.5);
+    }
+    .sheet-name {
+      font-family: var(--brand);
+      font-weight: 800;
+      font-size: 12.5px;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: var(--ink);
+    }
+    .sheet-status {
+      font-size: 10.5px;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 999px;
+      background: var(--field);
+      color: var(--muted);
+    }
+    .sheet-status.locked { background: var(--green-soft); color: var(--ink); }
+    .sheet-count { font-size: 11.5px; font-weight: 800; color: var(--ink); }
+    .sheet-count.zero { color: var(--muted); font-weight: 600; }
+    .sheet-open {
+      margin-left: auto;
+      font: 600 11px/1 var(--mono);
+      color: var(--muted);
+      text-decoration: none;
+      border: 1px solid var(--edge);
+      border-radius: 7px;
+      padding: 5px 9px;
+      transition: color 0.15s ease, border-color 0.15s ease;
+    }
+    .sheet-open:hover { color: var(--ink); border-color: var(--ink); }
+    .sheet-stage {
+      display: flex;
+      justify-content: center;
+      background: var(--field);
+      padding: 20px;
+      overflow: hidden;
+    }
+    .sheet-stage .frame-holder { position: relative; flex: none; }
+    .sheet-stage iframe {
+      display: block;
+      border: 1px solid var(--edge);
+      border-radius: 8px;
       background: #fff;
+      box-shadow: 0 10px 26px rgba(43, 42, 38, 0.12);
+    }
+    .sheet-cap {
+      padding: 10px 16px 12px;
+      font: 600 11px/1.5 var(--mono);
+      color: var(--muted);
+    }
+    .sheet-empty {
+      border: 1px dashed var(--edge);
+      border-radius: 14px;
+      padding: 48px 24px;
+      text-align: center;
+      color: var(--muted);
+      font-size: 14px;
     }
 
     /* new-frame strip */
@@ -486,15 +542,8 @@
     <div id="canvas"></div>
   </div>
 
-  <!-- HTML mode: mockups as a browsable site -->
-  <div id="site-view">
-    <div id="site-bar">
-      <span id="site-route">/site/index.html</span>
-      <span class="spacer"></span>
-      <select id="site-pages" aria-label="Jump to page"></select>
-    </div>
-    <iframe id="site-frame" src="about:blank" title="Mockup site"></iframe>
-  </div>
+  <!-- HTML mode: the design sheet — mockups stacked as a normal page -->
+  <div id="sheet-view"></div>
 
   <!-- Zoom pill -->
   <div id="zoom-pill">

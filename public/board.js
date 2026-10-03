@@ -52,14 +52,15 @@ const modalCopyBtn  = /** @type {HTMLButtonElement} */ (document.getElementById(
 const modalCancelBtn = /** @type {HTMLButtonElement} */ (document.getElementById('modal-cancel-btn'));
 const toastEl       = /** @type {HTMLDivElement}    */ (document.getElementById('toast'));
 
-// HTML mode
+// HTML mode (design sheet)
 const modeCanvasBtn = /** @type {HTMLButtonElement} */ (document.getElementById('mode-canvas'));
 const modeHtmlBtn   = /** @type {HTMLButtonElement} */ (document.getElementById('mode-html'));
-const siteFrame     = /** @type {HTMLIFrameElement} */ (document.getElementById('site-frame'));
-const siteRouteEl   = /** @type {HTMLSpanElement}   */ (document.getElementById('site-route'));
-const sitePagesEl   = /** @type {HTMLSelectElement} */ (document.getElementById('site-pages'));
+const sheetView     = /** @type {HTMLDivElement}    */ (document.getElementById('sheet-view'));
 
 const MODE_KEY = 'pikaso-mode';
+
+/** @type {Map<string, HTMLIFrameElement>} frameName → sheet iframe element */
+const sheetIframes = new Map();
 
 // ---------------------------------------------------------------------------
 // Canvas transform
@@ -447,33 +448,108 @@ modalCopyBtn.addEventListener('click', async () => {
 });
 
 // ---------------------------------------------------------------------------
-// HTML mode — mockups as a browsable multi-page site
+// HTML mode — the design sheet: mockups stacked as a normal scrolling page
 // ---------------------------------------------------------------------------
 
 /**
- * Populate the page-jump select from the current project frames.
- * The entry page (/site/index.html) is the frame named index/home, else the first.
- * @param {Array<{name:string}>} frames
+ * Build one section of the sheet for a frame: labeled header, iframe scaled to
+ * fit the container width, and a caption with its single-page route.
+ * @param {{name:string,x:number,y:number,w:number,h:number,status:string}} frame
+ * @param {number} openCount
+ * @returns {HTMLElement}
  */
-function populateSitePages(frames) {
+function buildSheetSection(frame, openCount) {
+  const color = frameColors.get(frame.name) ?? FRAME_COLORS[0];
+  const section = document.createElement('section');
+  section.className = 'sheet-section';
+  section.dataset.frame = frame.name;
+  section.id = 'sheet-' + frame.name;
+
+  const head = document.createElement('div');
+  head.className = 'sheet-head';
+  head.innerHTML =
+    `<span class="sheet-dot" style="background:${color}"></span>` +
+    `<span class="sheet-name">${escHtml(frame.name)}</span>` +
+    `<span class="sheet-status${frame.status === 'locked' ? ' locked' : ''}">${escHtml(frame.status)}</span>` +
+    `<span class="sheet-count${openCount > 0 ? '' : ' zero'}">${openCount > 0 ? `◉ ${openCount} open` : '◎ 0 open'}</span>` +
+    `<a class="sheet-open" href="/site/${encodeURIComponent(frame.name)}.html" target="_blank" rel="noreferrer">/site/${escHtml(frame.name)}.html ↗</a>`;
+
+  const stage = document.createElement('div');
+  stage.className = 'sheet-stage';
+  const holder = document.createElement('div');
+  holder.className = 'frame-holder';
+
+  const iframe = document.createElement('iframe');
+  iframe.src = `/frames/${encodeURIComponent(frame.name)}/mockup.html`;
+  iframe.setAttribute('scrolling', 'no');
+  iframe.width = String(frame.w);
+  iframe.height = String(frame.h);
+  iframe.style.width = `${frame.w}px`;
+  iframe.style.height = `${frame.h}px`;
+  sheetIframes.set(frame.name, iframe);
+  holder.appendChild(iframe);
+  stage.appendChild(holder);
+
+  const cap = document.createElement('div');
+  cap.className = 'sheet-cap';
+  cap.textContent = `${frame.w} × ${frame.h}`;
+
+  section.appendChild(head);
+  section.appendChild(stage);
+  section.appendChild(cap);
+
+  // Scale the mockup down when the frame is wider than the sheet allows
+  const fit = () => {
+    const avail = stage.clientWidth - 40; // stage padding
+    const scale = Math.min(1, avail / frame.w);
+    iframe.style.transform = scale < 1 ? `scale(${scale})` : '';
+    iframe.style.transformOrigin = 'top left';
+    holder.style.width = `${frame.w * scale}px`;
+    holder.style.height = `${frame.h * scale}px`;
+  };
+  requestAnimationFrame(fit);
+  window.addEventListener('resize', fit);
+
+  return section;
+}
+
+/**
+ * Render the whole design sheet from project data.
+ * @param {{frames: Array<{name:string,x:number,y:number,w:number,h:number,status:string}>}} project
+ */
+async function renderSheet(project) {
+  const frames = project.frames ?? [];
+  // Main page first: index/home, else the first frame; the rest follow in order
   const entry = frames.find(f => f.name === 'index' || f.name === 'home') ?? frames[0];
-  sitePagesEl.innerHTML = '';
-  if (entry) {
-    const opt = document.createElement('option');
-    opt.value = 'index.html';
-    opt.textContent = `index.html — ${entry.name}`;
-    sitePagesEl.appendChild(opt);
+  const ordered = entry ? [entry, ...frames.filter(f => f !== entry)] : [];
+
+  sheetView.innerHTML = '';
+  sheetIframes.clear();
+  if (!ordered.length) {
+    const empty = document.createElement('div');
+    empty.className = 'sheet-empty';
+    empty.textContent = 'No mockups yet — generate a frame and it appears here, stacked as a normal page.';
+    sheetView.appendChild(empty);
+    return;
   }
-  for (const f of frames) {
-    const opt = document.createElement('option');
-    opt.value = `${f.name}.html`;
-    opt.textContent = `${f.name}.html`;
-    sitePagesEl.appendChild(opt);
+
+  const title = document.createElement('h1');
+  title.className = 'sheet-title';
+  title.textContent = 'Mockups';
+  const sub = document.createElement('p');
+  sub.className = 'sheet-sub';
+  sub.textContent = `${ordered.length} page${ordered.length === 1 ? '' : 's'} · main first, sub-pages after · pins stay live`;
+  sheetView.appendChild(title);
+  sheetView.appendChild(sub);
+
+  for (const frame of ordered) {
+    const openCount = await fetchOpenCount(frame.name);
+    sheetView.appendChild(buildSheetSection(frame, openCount));
   }
 }
 
 /**
- * Switch between canvas view and HTML (site) view.
+ * Switch between canvas view and the design sheet.
  * @param {'canvas'|'html'} mode
  */
 function setMode(mode) {
@@ -484,30 +560,16 @@ function setMode(mode) {
   try { localStorage.setItem(MODE_KEY, mode); } catch { /* private mode */ }
 
   if (html) {
-    // First entry into HTML mode (or a fresh board): load the entry page.
-    if (siteFrame.src === 'about:blank' || siteFrame.getAttribute('src') === 'about:blank') {
-      siteFrame.src = '/site/index.html';
-    }
-    apiFetch('/api/project').then(p => populateSitePages(p.frames ?? [])).catch(() => {});
+    sheetIframes.clear();
+    sheetView.innerHTML = '<div class="sheet-empty">Loading mockups…</div>';
+    apiFetch('/api/project').then(p => renderSheet(p)).catch(() => {
+      sheetView.innerHTML = '<div class="sheet-empty">Could not load the board.</div>';
+    });
   }
 }
 
 modeCanvasBtn.addEventListener('click', () => setMode('canvas'));
 modeHtmlBtn.addEventListener('click', () => setMode('html'));
-
-// Route chip + page select sync while browsing the site
-siteFrame.addEventListener('load', () => {
-  try {
-    const path = siteFrame.contentWindow.location.pathname;
-    siteRouteEl.textContent = path;
-    const file = path.replace(/^\/site\//, '');
-    if (file) sitePagesEl.value = file;
-  } catch { /* cross-origin can't happen (same server), but stay safe */ }
-});
-
-sitePagesEl.addEventListener('change', () => {
-  siteFrame.src = '/site/' + sitePagesEl.value;
-});
 
 // ---------------------------------------------------------------------------
 // SSE live reload
@@ -524,9 +586,10 @@ function connectSSE() {
         // Force reload of just this iframe
         iframe.src = iframe.src; // eslint-disable-line no-self-assign
       }
-      // HTML mode: reload the site pane so the edit shows up there too
-      if (document.body.dataset.mode === 'html') {
-        siteFrame.src = siteFrame.src; // eslint-disable-line no-self-assign
+      // Design sheet: reload that frame's section if it's open
+      const sheetFrame = sheetIframes.get(frame);
+      if (sheetFrame) {
+        sheetFrame.src = sheetFrame.src; // eslint-disable-line no-self-assign
       }
     } catch { /* malformed event */ }
   });
