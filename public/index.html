@@ -4,82 +4,167 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Pikaso</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Epilogue:wght@800&family=Lora:ital,wght@0,400;1,400&family=Manrope:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <script>
+    // apply saved theme before first paint — light is the default
+    try {
+      var t = localStorage.getItem("pikaso-theme");
+      if (t === "dark") document.documentElement.setAttribute("data-theme", "dark");
+    } catch (e) {}
+  </script>
   <style>
+    /* ── design tokens — shared with the landing page ─────────────────── */
+    :root {
+      --paper: #fbf9f4;
+      --ink: #2b2a26;
+      --muted: #84837b;
+      --hairline: rgba(43, 42, 38, 0.08);
+      --edge: rgba(43, 42, 38, 0.14);
+      --dot: rgba(43, 42, 38, 0.16);
+      --card: #ffffff;
+      --field: #f4f2ea;
+      --green: #62d96b;
+      --green-soft: rgba(98, 217, 107, 0.18);
+      --mint: #9fe7a4;
+      --butter: #f8e9a9;
+      --butter-deep: #f2cf62;
+      --pink: #f4b8c0;
+      --sky: #a9e8eb;
+      --dark: #1d1c19;
+      --dark-ink: #f4f2ea;
+      --dark-edge: rgba(244, 242, 234, 0.14);
+      --cta-ink: #1d1c19;       /* CTA text stays dark ink in both themes */
+      --serif: "Lora", Georgia, "Times New Roman", serif;
+      --sans: "Manrope", -apple-system, "Segoe UI", Roboto, sans-serif;
+      --brand: "Epilogue", var(--sans);
+      --mono: ui-monospace, "Cascadia Code", Consolas, Menlo, monospace;
+      --ease: cubic-bezier(0.6, 0, 0, 1);
+    }
+    [data-theme="dark"] {
+      --paper: #1d1c19;
+      --ink: #f4f2ea;
+      --muted: rgba(244, 242, 234, 0.55);
+      --hairline: rgba(244, 242, 234, 0.1);
+      --edge: rgba(244, 242, 234, 0.16);
+      --dot: rgba(244, 242, 234, 0.13);
+      --card: #24231e;
+      --field: #2b2a25;
+      --dark: #f4f2ea;          /* "dark cards" invert: toast becomes light */
+      --dark-ink: #1d1c19;
+    }
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     html, body { width: 100%; height: 100%; overflow: hidden; }
     body {
-      font-family: -apple-system, "Segoe UI", system-ui, sans-serif;
-      background: #0d1117;
-      color: #e6edf3;
+      font-family: var(--sans);
+      background: var(--paper);
+      color: var(--ink);
     }
 
-    /* ── Top bar ─────────────────────────────────────────────────────── */
+    /* ── Top bar — sticky translucent, like the landing nav ───────────── */
     #top-bar {
       position: fixed;
       top: 0; left: 0; right: 0;
-      height: 44px;
-      background: #161b22;
-      border-bottom: 1px solid #30363d;
+      height: 52px;
+      background: color-mix(in srgb, var(--paper) 88%, transparent);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      border-bottom: 1px solid var(--hairline);
       display: flex;
       align-items: center;
-      padding: 0 16px;
+      padding: 0 20px;
       gap: 12px;
       z-index: 100;
       user-select: none;
     }
     #top-bar .brand {
-      font-weight: 600;
-      font-size: 15px;
-      color: #e6edf3;
+      font-family: var(--brand);
+      font-weight: 800;
+      font-size: 16px;
+      color: var(--ink);
       letter-spacing: -0.3px;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
     }
-    #top-bar .sep { color: #30363d; font-size: 18px; line-height: 1; }
+    #top-bar .brand::before {
+      content: '';
+      width: 13px; height: 13px;
+      border-radius: 50%;
+      background: var(--green);
+      box-shadow: inset -2px -3px 4px rgba(0,0,0,0.22), inset 2px 3px 4px rgba(255,255,255,0.5);
+    }
+    #top-bar .sep { color: var(--edge); font-size: 18px; line-height: 1; }
     #top-bar .board-name {
       font-size: 13px;
-      color: #8b949e;
+      color: var(--muted);
+      font-weight: 600;
     }
     #top-bar .spacer { flex: 1; }
     #top-bar #bob-status {
       font-size: 12px;
-      color: #8b949e;
+      font-weight: 600;
+      color: var(--muted);
     }
-    #top-bar #bob-status.active { color: #3fb950; }
+    #top-bar #bob-status.active { color: var(--ink); }
+    #top-bar #bob-status.active::before { content: '● '; color: var(--green); }
+
+    #theme-toggle {
+      width: 30px; height: 30px;
+      border: 1px solid var(--edge);
+      border-radius: 8px;
+      background: var(--card);
+      color: var(--ink);
+      font-size: 14px;
+      line-height: 1;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      transition: transform 0.15s var(--ease), background 0.15s ease;
+    }
+    #theme-toggle:hover { transform: translateY(-1px); background: var(--field); }
 
     /* new-frame strip */
     #new-frame-strip {
       display: flex;
-      gap: 6px;
+      gap: 8px;
       align-items: center;
     }
     #new-frame-strip input {
-      font: 13px/1 -apple-system, "Segoe UI", system-ui, sans-serif;
-      background: #0d1117;
-      border: 1px solid #30363d;
-      color: #e6edf3;
-      border-radius: 5px;
-      padding: 5px 10px;
+      font: 600 13px/1 var(--sans);
+      background: var(--card);
+      border: 1px solid var(--edge);
+      color: var(--ink);
+      border-radius: 8px;
+      padding: 7px 12px;
       width: 240px;
       outline: none;
+      transition: border-color 0.15s ease;
     }
-    #new-frame-strip input:focus { border-color: #388bfd; }
-    #new-frame-strip input::placeholder { color: #484f58; }
+    #new-frame-strip input:focus { border-color: var(--ink); }
+    #new-frame-strip input::placeholder { color: var(--muted); font-weight: 400; }
     #new-frame-btn {
-      font: 12px/1 -apple-system, "Segoe UI", system-ui, sans-serif;
-      background: #238636;
-      color: #fff;
+      font: 700 13px/1 var(--sans);
+      background: var(--green);
+      color: var(--cta-ink);
       border: none;
-      border-radius: 5px;
-      padding: 6px 12px;
+      border-radius: 8px;
+      padding: 8px 14px;
       cursor: pointer;
       white-space: nowrap;
+      transition: transform 0.15s var(--ease), box-shadow 0.15s var(--ease), background 0.15s ease;
     }
-    #new-frame-btn:hover { background: #2ea043; }
-    #new-frame-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    #new-frame-btn:hover {
+      background: var(--mint);
+      transform: translate(-1px, -1px);
+      box-shadow: 3px 4px 0 -1px var(--green-soft);
+    }
+    #new-frame-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; box-shadow: none; }
 
     /* ── Board canvas ────────────────────────────────────────────────── */
     #board-root {
       position: fixed;
-      top: 44px; left: 0; right: 0; bottom: 0;
+      top: 52px; left: 0; right: 0; bottom: 0;
       overflow: hidden;
       cursor: grab;
     }
@@ -90,7 +175,7 @@
       content: '';
       position: absolute;
       inset: -9999px;
-      background-image: radial-gradient(circle, #30363d 1px, transparent 1px);
+      background-image: radial-gradient(circle, var(--dot) 1px, transparent 1px);
       background-size: 24px 24px;
       pointer-events: none;
     }
@@ -108,37 +193,49 @@
     }
     .frame-label {
       position: absolute;
-      top: -26px;
-      left: 0;
+      top: -28px;
+      left: 2px;
       font-size: 12px;
-      color: #8b949e;
+      color: var(--muted);
       white-space: nowrap;
       pointer-events: none;
+      display: flex;
+      align-items: baseline;
+      gap: 7px;
     }
-    .frame-label .frame-name { font-weight: 600; color: #e6edf3; }
+    .frame-label .frame-name {
+      font-family: var(--brand);
+      font-weight: 800;
+      font-size: 12.5px;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: var(--ink);
+    }
     .frame-label .frame-status {
-      font-size: 11px;
-      padding: 1px 5px;
-      border-radius: 3px;
-      margin-left: 6px;
-      background: #21262d;
-      color: #8b949e;
+      font-size: 10.5px;
+      font-weight: 700;
+      padding: 2px 7px;
+      border-radius: 999px;
+      background: var(--field);
+      color: var(--muted);
     }
     .frame-label .frame-status.locked {
-      background: #1f3a1f;
-      color: #3fb950;
+      background: var(--green-soft);
+      color: var(--ink);
     }
     .frame-label .ann-count {
-      margin-left: 5px;
-      color: #f0883e;
+      font-weight: 800;
+      color: var(--ink);
     }
-    .frame-label .ann-count.zero { color: #484f58; }
+    .frame-label .ann-count.zero { color: var(--muted); font-weight: 600; }
     .frame-iframe {
       display: block;
-      border: 1px solid #30363d;
-      border-radius: 4px;
+      border: 1px solid var(--edge);
+      border-radius: 8px;
       background: #fff;
+      box-shadow: 0 16px 36px rgba(43, 42, 38, 0.1);
     }
+    [data-theme="dark"] .frame-iframe { box-shadow: 0 16px 36px rgba(0, 0, 0, 0.35); }
 
     /* ── Zoom pill ───────────────────────────────────────────────────── */
     #zoom-pill {
@@ -147,82 +244,93 @@
       display: flex;
       align-items: center;
       gap: 2px;
-      background: #161b22;
-      border: 1px solid #30363d;
-      border-radius: 7px;
+      background: var(--card);
+      border: 1px solid var(--edge);
+      border-radius: 10px;
       padding: 4px 6px;
       z-index: 100;
       user-select: none;
+      box-shadow: 0 10px 26px rgba(43, 42, 38, 0.08);
     }
     .zoom-btn {
       background: none;
       border: none;
-      color: #e6edf3;
+      color: var(--ink);
       font-size: 15px;
       line-height: 1;
-      width: 26px;
-      height: 26px;
+      width: 26px; height: 26px;
       cursor: pointer;
-      border-radius: 4px;
+      border-radius: 6px;
       display: flex; align-items: center; justify-content: center;
+      transition: background 0.15s ease;
     }
-    .zoom-btn:hover { background: #21262d; }
+    .zoom-btn:hover { background: var(--field); }
     #zoom-label {
       font-size: 12px;
-      color: #8b949e;
+      font-weight: 700;
+      color: var(--muted);
       min-width: 42px;
       text-align: center;
     }
 
-    /* ── Lock button ─────────────────────────────────────────────────── */
+    /* ── Lock button — the butter CTA ────────────────────────────────── */
     #lock-btn {
       position: fixed;
       bottom: 20px; right: 20px;
-      background: #161b22;
-      border: 1px solid #30363d;
-      border-radius: 7px;
-      padding: 8px 16px;
-      color: #e6edf3;
-      font: 13px/1 -apple-system, "Segoe UI", system-ui, sans-serif;
+      background: var(--butter-deep);
+      border: none;
+      border-radius: 9px;
+      padding: 10px 18px;
+      color: var(--cta-ink);
+      font: 700 13px/1 var(--sans);
       cursor: pointer;
       z-index: 100;
+      transition: transform 0.2s var(--ease), box-shadow 0.2s var(--ease), background 0.2s ease;
     }
-    #lock-btn:hover { background: #21262d; border-color: #8b949e; }
+    #lock-btn:hover {
+      background: var(--butter);
+      transform: translate(-2px, -2px);
+      box-shadow: 4px 5px 0 -1px rgba(43, 42, 38, 0.22);
+    }
 
     /* ── Modal ───────────────────────────────────────────────────────── */
     #modal-overlay {
       display: none;
       position: fixed;
       inset: 0;
-      background: rgba(0,0,0,0.7);
+      background: rgba(43, 42, 38, 0.45);
       z-index: 200;
       align-items: center;
       justify-content: center;
     }
     #modal-overlay.open { display: flex; }
     #modal {
-      background: #161b22;
-      border: 1px solid #30363d;
-      border-radius: 10px;
-      padding: 28px 32px;
+      background: var(--card);
+      border: 1px solid var(--edge);
+      border-radius: 14px;
+      padding: 30px 34px;
       min-width: 380px;
-      max-width: 440px;
+      max-width: 460px;
+      box-shadow: 6px 8px 0 -1px var(--green-soft), 0 24px 60px rgba(43, 42, 38, 0.18);
     }
     #modal h2 {
-      font-size: 15px;
-      font-weight: 600;
-      margin-bottom: 16px;
+      font-family: var(--serif);
+      font-weight: 400;
+      font-size: 20px;
+      margin-bottom: 14px;
     }
     #modal .modal-stats {
       font-size: 13px;
-      color: #8b949e;
+      font-weight: 600;
+      color: var(--ink);
       margin-bottom: 8px;
     }
     #modal .modal-note {
       font-size: 12px;
-      color: #484f58;
-      margin-bottom: 20px;
+      color: var(--muted);
+      margin-bottom: 22px;
     }
+    #modal .modal-note code { font-family: var(--mono); font-size: 11px; }
     #modal .modal-actions {
       display: flex;
       gap: 8px;
@@ -230,44 +338,47 @@
       flex-wrap: wrap;
     }
     .modal-btn {
-      font: 13px/1 -apple-system, "Segoe UI", system-ui, sans-serif;
-      border-radius: 6px;
-      padding: 7px 14px;
-      border: 1px solid #30363d;
+      font: 700 13px/1 var(--sans);
+      border-radius: 8px;
+      padding: 8px 15px;
+      border: 1px solid transparent;
       cursor: pointer;
+      transition: transform 0.15s var(--ease), box-shadow 0.15s var(--ease), background 0.15s ease;
     }
     #modal-run-btn {
-      background: #238636;
-      color: #fff;
-      border-color: #238636;
+      background: var(--green);
+      color: var(--cta-ink);
     }
-    #modal-run-btn:hover { background: #2ea043; }
+    #modal-run-btn:hover { background: var(--mint); transform: translate(-1px, -1px); box-shadow: 3px 4px 0 -1px var(--green-soft); }
     #modal-copy-btn {
-      background: #21262d;
-      color: #e6edf3;
+      background: var(--card);
+      border-color: var(--edge);
+      color: var(--ink);
     }
-    #modal-copy-btn:hover { background: #30363d; }
+    #modal-copy-btn:hover { background: var(--field); }
     #modal-cancel-btn {
       background: none;
-      color: #8b949e;
+      color: var(--muted);
     }
-    #modal-cancel-btn:hover { color: #e6edf3; }
+    #modal-cancel-btn:hover { color: var(--ink); }
 
-    /* ── Toast ───────────────────────────────────────────────────────── */
+    /* ── Toast — the dark card ───────────────────────────────────────── */
     #toast {
       position: fixed;
-      bottom: 72px; left: 50%;
+      bottom: 76px; left: 50%;
       transform: translateX(-50%);
-      background: #21262d;
-      border: 1px solid #30363d;
-      border-radius: 6px;
-      padding: 8px 18px;
+      background: var(--dark);
+      border: 1px solid var(--dark-edge);
+      border-radius: 9px;
+      padding: 9px 20px;
       font-size: 13px;
-      color: #e6edf3;
+      font-weight: 600;
+      color: var(--dark-ink);
       z-index: 300;
       opacity: 0;
       transition: opacity 0.2s;
       pointer-events: none;
+      box-shadow: 0 16px 36px rgba(43, 42, 38, 0.18);
     }
     #toast.show { opacity: 1; }
   </style>
@@ -275,11 +386,12 @@
 <body>
   <!-- Top bar -->
   <div id="top-bar">
-    <span class="brand">Pikaso</span>
+    <span class="brand">pikaso</span>
     <span class="sep">›</span>
     <span class="board-name" id="board-name">board</span>
     <span class="spacer"></span>
     <span id="bob-status">Bob: idle</span>
+    <button id="theme-toggle" type="button" title="Toggle light / dark" aria-label="Toggle theme">☾</button>
     <div id="new-frame-strip">
       <input id="new-frame-input" type="text" placeholder="Describe the screen…" autocomplete="off">
       <button id="new-frame-btn">+ Generate mockup</button>
@@ -317,6 +429,27 @@
 
   <!-- Toast -->
   <div id="toast"></div>
+
+  <script>
+    // theme toggle — light default, persists across sessions
+    (function () {
+      var btn = document.getElementById("theme-toggle");
+      // sync glyph with the theme the boot script applied
+      if (document.documentElement.getAttribute("data-theme") === "dark") btn.textContent = "☀";
+      btn.addEventListener("click", function () {
+        var root = document.documentElement;
+        var dark = root.getAttribute("data-theme") === "dark";
+        if (dark) {
+          root.removeAttribute("data-theme");
+          this.textContent = "☾";
+        } else {
+          root.setAttribute("data-theme", "dark");
+          this.textContent = "☀";
+        }
+        try { localStorage.setItem("pikaso-theme", dark ? "light" : "dark"); } catch (e) {}
+      });
+    })();
+  </script>
 
   <script src="/board.js" type="module"></script>
 </body>

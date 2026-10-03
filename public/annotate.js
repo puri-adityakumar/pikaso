@@ -27,63 +27,62 @@
   const style = document.createElement('style');
   style.textContent = `
     .pikaso-hover-outline {
-      outline: 2px dashed #388bfd !important;
+      outline: 2px dashed #3fbf57 !important;
       outline-offset: 2px !important;
       cursor: crosshair !important;
     }
     .pikaso-comment-box {
       position: fixed;
       z-index: 2147483647;
-      background: #161b22;
-      border: 1px solid #30363d;
-      border-radius: 8px;
+      background: #1d1c19;
+      border: 1px solid rgba(244, 242, 234, 0.14);
+      border-radius: 10px;
       padding: 12px 14px;
       min-width: 260px;
       max-width: 340px;
-      box-shadow: 0 8px 24px rgba(0,0,0,0.5);
-      font-family: -apple-system, "Segoe UI", system-ui, sans-serif;
+      box-shadow: 5px 6px 0 -1px rgba(98, 217, 107, 0.45), 0 16px 36px rgba(43, 42, 38, 0.3);
+      font-family: "Manrope", -apple-system, "Segoe UI", system-ui, sans-serif;
       font-size: 13px;
-      color: #e6edf3;
+      color: #f4f2ea;
     }
     .pikaso-comment-box textarea {
       width: 100%;
       min-height: 72px;
-      background: #0d1117;
-      border: 1px solid #30363d;
-      border-radius: 5px;
-      color: #e6edf3;
-      font: 13px/1.5 -apple-system, "Segoe UI", system-ui, sans-serif;
+      background: #2b2a25;
+      border: 1px solid rgba(244, 242, 234, 0.16);
+      border-radius: 7px;
+      color: #f4f2ea;
+      font: 600 13px/1.5 "Manrope", -apple-system, "Segoe UI", system-ui, sans-serif;
       padding: 7px 9px;
       resize: vertical;
       outline: none;
       box-sizing: border-box;
       margin-bottom: 8px;
     }
-    .pikaso-comment-box textarea:focus { border-color: #388bfd; }
-    .pikaso-comment-box textarea::placeholder { color: #484f58; }
+    .pikaso-comment-box textarea:focus { border-color: #62d96b; }
+    .pikaso-comment-box textarea::placeholder { color: rgba(244, 242, 234, 0.45); font-weight: 400; }
     .pikaso-comment-actions {
       display: flex;
       gap: 6px;
       justify-content: flex-end;
     }
     .pikaso-btn {
-      font: 12px/1 -apple-system, "Segoe UI", system-ui, sans-serif;
-      border-radius: 5px;
-      padding: 5px 12px;
-      border: 1px solid #30363d;
+      font: 700 12px/1 "Manrope", -apple-system, "Segoe UI", system-ui, sans-serif;
+      border-radius: 7px;
+      padding: 6px 13px;
+      border: none;
       cursor: pointer;
     }
     .pikaso-btn-save {
-      background: #238636;
-      color: #fff;
-      border-color: #238636;
+      background: #f2cf62;
+      color: #2b2a26;
     }
-    .pikaso-btn-save:hover { background: #2ea043; }
+    .pikaso-btn-save:hover { background: #f8e9a9; }
     .pikaso-btn-cancel {
-      background: #21262d;
-      color: #8b949e;
+      background: none;
+      color: rgba(244, 242, 234, 0.55);
     }
-    .pikaso-btn-cancel:hover { color: #e6edf3; }
+    .pikaso-btn-cancel:hover { color: #f4f2ea; }
 
     /* Annotation pins */
     .pikaso-pin {
@@ -92,49 +91,50 @@
       width: 22px;
       height: 22px;
       border-radius: 50%;
-      background: #388bfd;
-      color: #fff;
-      font: bold 11px/22px -apple-system, "Segoe UI", system-ui, sans-serif;
+      background: #62d96b;
+      color: #1d1c19;
+      font: 800 11px/18px "Manrope", -apple-system, "Segoe UI", system-ui, sans-serif;
       text-align: center;
       cursor: pointer;
       pointer-events: auto;
       border: 2px solid #fff;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+      box-shadow: inset -2px -3px 4px rgba(0,0,0,0.25), inset 2px 3px 4px rgba(255,255,255,0.45), 0 2px 6px rgba(0,0,0,0.35);
       user-select: none;
     }
     .pikaso-pin.resolved {
-      background: #484f58;
-      border-color: #30363d;
-      color: #8b949e;
+      background: #84837b;
+      border-color: #f4f2ea;
+      color: #f4f2ea;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.3);
     }
     /* Pin tooltip */
     .pikaso-pin-tooltip {
       position: absolute;
       z-index: 2147483647;
-      background: #161b22;
-      border: 1px solid #30363d;
-      border-radius: 6px;
+      background: #1d1c19;
+      border: 1px solid rgba(244, 242, 234, 0.14);
+      border-radius: 8px;
       padding: 8px 12px;
       max-width: 280px;
-      font: 12px/1.5 -apple-system, "Segoe UI", system-ui, sans-serif;
-      color: #e6edf3;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+      font: 600 12px/1.5 "Manrope", -apple-system, "Segoe UI", system-ui, sans-serif;
+      color: #f4f2ea;
+      box-shadow: 0 12px 28px rgba(43, 42, 38, 0.35);
       pointer-events: none;
       white-space: pre-wrap;
     }
     /* Resolve button inside tooltip */
     .pikaso-resolve-btn {
-      font: 11px/1 -apple-system, "Segoe UI", system-ui, sans-serif;
+      font: 700 11px/1 "Manrope", -apple-system, "Segoe UI", system-ui, sans-serif;
       background: none;
-      border: 1px solid #30363d;
-      border-radius: 4px;
-      color: #8b949e;
-      padding: 3px 8px;
+      border: 1px solid rgba(244, 242, 234, 0.24);
+      border-radius: 6px;
+      color: rgba(244, 242, 234, 0.7);
+      padding: 4px 9px;
       cursor: pointer;
       margin-top: 6px;
       pointer-events: auto;
     }
-    .pikaso-resolve-btn:hover { color: #3fb950; border-color: #3fb950; }
+    .pikaso-resolve-btn:hover { color: #62d96b; border-color: #62d96b; }
 
     /* Hover target layer */
     #pikaso-overlay {
