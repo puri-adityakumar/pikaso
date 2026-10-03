@@ -74,6 +74,191 @@ function Page({ eyebrow, title, lede, center, children }) {
   );
 }
 
+/* ---------- user flows: SVG diagrams ---------- */
+
+function FlowNode({ x, y, w, h, tint, dark, title, children }) {
+  return (
+    <g>
+      <rect x={x + 6} y={y + 8} width={w} height={h} rx={12} fill={tint} />
+      <rect x={x} y={y} width={w} height={h} rx={12} fill={dark ? "#1d1c19" : "#fff"} stroke={dark ? "#1d1c19" : "rgba(43,42,38,0.14)"} />
+      <text x={x + 16} y={y + 28} className={"svg-eyebrow" + (dark ? " svg-dark" : "")}>{title}</text>
+      {children}
+    </g>
+  );
+}
+
+function FlowArrow({ x1, y, x2, id }) {
+  return (
+    <line x1={x1} y1={y} x2={x2} y2={y} stroke="#2b2a26" strokeWidth="1.6" markerEnd={`url(#${id})`} />
+  );
+}
+
+function FlowArrowDefs({ id }) {
+  return (
+    <defs>
+      <marker id={id} markerWidth="9" markerHeight="9" refX="7" refY="4" orient="auto">
+        <path d="M0,0 L8,4 L0,8 z" fill="#2b2a26" />
+      </marker>
+    </defs>
+  );
+}
+
+function FlowsCold() {
+  return (
+    <svg viewBox="0 0 1040 250" role="img" aria-label="Cold path: you ask, the council designs, a frame appears on the board">
+      <FlowArrowDefs id="arr-cold" />
+      <FlowNode x={16} y={86} w={180} h={84} tint="var(--green)" title="YOU">
+        <text x={32} y={54 + 86} className="svg-title">terminal</text>
+        <text x={32} y={72 + 86} className="svg-sub">"design a pricing page"</text>
+      </FlowNode>
+      <FlowArrow id="arr-cold" x1={196} y={128} x2={236} />
+      <FlowNode x={244} y={48} w={280} h={160} tint="var(--sky)" title="ART DIRECTOR">
+        <text x={260} y={62 + 48} className="svg-row">├ Scout     → design-system.md</text>
+        <text x={260} y={82 + 48} className="svg-row">├ Builders×N → mockup.html</text>
+        <text x={260} y={102 + 48} className="svg-row">└ Critics   → rubric verdict</text>
+        <text x={260} y={130 + 48} className="svg-mono">.pikaso/frames/pricing/mockup.html</text>
+      </FlowNode>
+      <FlowArrow id="arr-cold" x1={524} y={128} x2={564} />
+      <FlowNode x={572} y={86} w={200} h={84} tint="var(--butter-deep)" title="BOARD">
+        <text x={588} y={54 + 86} className="svg-title">frame appears</text>
+        <text x={588} y={72 + 86} className="svg-sub">localhost:7625 · live</text>
+      </FlowNode>
+      <text x={800} y={100} className="svg-eyebrow">COUNCIL RUNS</text>
+      <text x={800} y={122} className="svg-sub">before you ever</text>
+      <text x={800} y={140} className="svg-sub">see the first draft</text>
+    </svg>
+  );
+}
+
+function FlowsAnnotate() {
+  return (
+    <svg viewBox="0 0 1040 250" role="img" aria-label="Annotate: click an element, leave a comment, a pin appears">
+      <FlowArrowDefs id="arr-ann" />
+      <FlowNode x={16} y={48} w={290} h={160} tint="var(--green)" title="1 · CLICK ANY ELEMENT">
+        <rect x={36} y={88} width={250} height={100} rx={8} fill="var(--paper)" stroke="rgba(43,42,38,0.14)" />
+        <rect x={52} y={106} width={140} height={16} rx={4} fill="none" stroke="var(--green)" strokeWidth="2" strokeDasharray="5 4" />
+        <rect x={54} y={112} width={110} height={5} rx={2.5} fill="rgba(43,42,38,0.35)" />
+        <rect x={52} y={136} width={190} height={5} rx={2.5} fill="rgba(43,42,38,0.16)" />
+        <rect x={52} y={150} width={160} height={5} rx={2.5} fill="rgba(43,42,38,0.16)" />
+        <path d="M212 110 l11 4.5 -5 2 -2 5.5 z" fill="#2b2a26" />
+      </FlowNode>
+      <FlowArrow id="arr-ann" x1={306} y={128} x2={346} />
+      <FlowNode x={354} y={48} w={290} h={160} tint="var(--butter-deep)" title="2 · LEAVE A COMMENT">
+        <rect x={374} y={84} width={250} height={64} rx={8} fill="var(--paper)" stroke="rgba(43,42,38,0.14)" />
+        <text x={390} y={110} className="svg-row">"make the headline pop"</text>
+        <text x={390} y={130} className="svg-sub">you · 14:32</text>
+        <rect x={556} y={120} width={56} height={22} rx={6} fill="var(--dark)" />
+        <text x={584} y={135} textAnchor="middle" className="svg-eyebrow svg-dark">SAVE</text>
+      </FlowNode>
+      <FlowArrow id="arr-ann" x1={644} y={128} x2={684} />
+      <FlowNode x={692} y={48} w={290} h={160} tint="var(--pink)" title="3 · PIN APPEARS">
+        <circle cx={760} cy={128} r={26} fill="var(--green)" stroke="rgba(43,42,38,0.2)" />
+        <circle cx={760} cy={120} r={9} fill="rgba(255,255,255,0.45)" />
+        <text x={760} y={134} textAnchor="middle" className="svg-title">1</text>
+        <text x={806} y={118} className="svg-mono">◉ 1 open</text>
+        <text x={806} y={138} className="svg-sub">anchored to the</text>
+        <text x={806} y={154} className="svg-sub">selector, not prose</text>
+      </FlowNode>
+    </svg>
+  );
+}
+
+function FlowsApply() {
+  return (
+    <svg viewBox="0 0 1040 250" role="img" aria-label="Apply: the agent edits the mockup and the board live-reloads">
+      <FlowArrowDefs id="arr-app" />
+      <FlowNode x={16} y={86} w={190} h={84} tint="var(--green)" title="YOU">
+        <text x={32} y={54 + 86} className="svg-title">"apply the</text>
+        <text x={32} y={72 + 86} className="svg-title">annotations"</text>
+      </FlowNode>
+      <FlowArrow id="arr-app" x1={206} y={128} x2={246} />
+      <FlowNode x={254} y={64} w={260} h={128} tint="var(--butter-deep)" title="AGENT">
+        <text x={270} y={66 + 64} className="svg-row">reads annotations.json</text>
+        <text x={270} y={88 + 64} className="svg-row">edits mockup.html</text>
+        <text x={270} y={110 + 64} className="svg-row">batch — never per-comment</text>
+      </FlowNode>
+      <FlowArrow id="arr-app" x1={514} y={128} x2={554} />
+      <FlowNode x={562} y={86} w={180} h={84} tint="var(--sky)" title="SSE">
+        <text x={578} y={54 + 86} className="svg-title">live-reload</text>
+        <text x={578} y={72 + 86} className="svg-sub">event: reload</text>
+      </FlowNode>
+      <FlowArrow id="arr-app" x1={742} y={128} x2={782} />
+      <FlowNode x={790} y={64} w={234} h={128} tint="var(--green)" title="BOARD">
+        <text x={806} y={66 + 64} className="svg-row">iframe refreshes —</text>
+        <text x={806} y={88 + 64} className="svg-row">no page reload</text>
+        <text x={806} y={110 + 64} className="svg-mono">◎ 0 open · pin ① grey</text>
+      </FlowNode>
+    </svg>
+  );
+}
+
+function FlowsLock() {
+  return (
+    <svg viewBox="0 0 1040 250" role="img" aria-label="Lock: the draft condenses into DESIGN-SPEC.md and hands off to implementation">
+      <FlowArrowDefs id="arr-lock" />
+      <FlowNode x={16} y={86} w={200} h={84} tint="var(--pink)" title="CLICK LOCK">
+        <text x={32} y={54 + 86} className="svg-title">🔒 one click</text>
+        <text x={32} y={72 + 86} className="svg-sub">409 if pins still open</text>
+      </FlowNode>
+      <FlowArrow id="arr-lock" x1={216} y={128} x2={256} />
+      <FlowNode x={264} y={56} w={280} h={140} tint="var(--butter-deep)" dark title="DESIGN-SPEC.MD">
+        <text x={280} y={62 + 56} className="svg-row">Purpose · per frame</text>
+        <text x={280} y={84 + 56} className="svg-row">Token contract</text>
+        <text x={280} y={106 + 56} className="svg-row">Final state</text>
+        <text x={280} y={128 + 56} className="svg-row">resolved annotation history</text>
+      </FlowNode>
+      <FlowArrow id="arr-lock" x1={544} y={128} x2={584} />
+      <FlowNode x={592} y={86} w={190} h={84} tint="var(--sky)" title="COPY PROMPT">
+        <text x={608} y={54 + 86} className="svg-title">to clipboard</text>
+        <text x={608} y={72 + 86} className="svg-sub">paste into your agent</text>
+      </FlowNode>
+      <FlowArrow id="arr-lock" x1={782} y={128} x2={822} />
+      <FlowNode x={830} y={86} w={194} h={84} tint="var(--green)" title="BUILD">
+        <text x={846} y={54 + 86} className="svg-title">implementation</text>
+        <text x={846} y={72 + 86} className="svg-sub">guided by the spec</text>
+      </FlowNode>
+    </svg>
+  );
+}
+
+function FlowsVisual() {
+  const flows = [
+    ["01 · Generate — cold path", "You ask in the terminal; Scout reads your codebase, Builders write the frame, Critics review it before you see it.", <FlowsCold key="c" />],
+    ["02 · Review — on the board", "Click any element, leave a comment, and a numbered pin sticks to that exact selector.", <FlowsAnnotate key="a" />],
+    ["03 · Apply — hot path", "The agent reads the pins, edits the mockup, and the frame live-reloads while resolved pins grey out.", <FlowsApply key="ap" />],
+    ["04 · Lock — handoff", "One click condenses every decision into DESIGN-SPEC.md and copies the implementation prompt.", <FlowsLock key="l" />],
+  ];
+  return (
+    <div className="flows-grid">
+      {flows.map(([t, d, svg], i) => (
+        <figure className={"card flow-card fade-in d" + ((i % 3) + 1)} key={t}>
+          {svg}
+          <figcaption>
+            <h3>{t}</h3>
+            <p>{d}</p>
+          </figcaption>
+        </figure>
+      ))}
+      <div className="md-body fade-in d2">
+        <h2>Who does what</h2>
+        <table>
+          <thead><tr><th>Step</th><th>You are…</th><th>Where</th></tr></thead>
+          <tbody>
+            <tr><td>1. Generate</td><td>talker in terminal</td><td>agent + Council</td></tr>
+            <tr><td>2. Review</td><td>designer on the board</td><td>browser, click + pin</td></tr>
+            <tr><td>3. Apply</td><td>reviewer watching live reload</td><td>terminal ↔ board</td></tr>
+            <tr><td>4. Lock</td><td>decision maker</td><td>one click → spec → build</td></tr>
+          </tbody>
+        </table>
+        <p className="small">
+          Prefer plain text? The ASCII version of these flows lives at{" "}
+          <a href="docs/flows.md" target="_blank" rel="noreferrer">docs/flows.md</a>.
+        </p>
+      </div>
+    </div>
+  );
+}
+
 /* ---------- docs ---------- */
 
 const DOC_PAGES = [
@@ -113,7 +298,7 @@ function Docs({ sub }) {
           <div className="code-card md-file" aria-hidden="true">
             <div className="code-head">docs/{slug}.md</div>
           </div>
-          <Markdown file={slug + ".md"} />
+          {slug === "flows" ? <FlowsVisual /> : <Markdown file={slug + ".md"} />}
           <nav className="doc-pager">
             {DOC_PAGES.map(([s, label], i) =>
               s === slug && DOC_PAGES[i + 1] ? (

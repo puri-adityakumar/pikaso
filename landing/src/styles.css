@@ -643,3 +643,19 @@ pre { font-family: var(--mono); font-size: 0.82rem; line-height: 1.6; white-spac
 .page-center .page-head .lede { margin-inline: auto; }
 .page-center .md-body,
 .page-center .no-md-title .md-body { margin-inline: auto; }
+
+/* ---------- flows SVG diagrams ---------- */
+.flows-grid { display: grid; gap: 2rem; max-width: 100%; }
+.flow-card { padding: 0; overflow: hidden; max-width: 46rem; }
+.flow-card:nth-child(2n) { transform: rotate(0.3deg); }
+.flow-card svg { width: 100%; height: auto; display: block; padding: 1.4rem 1.4rem 0.6rem; }
+.flow-card figcaption { padding: 1rem 1.5rem 1.4rem; }
+.flow-card h3 { font-family: var(--serif); font-weight: 400; font-size: 1.15rem; margin: 0 0 0.3rem; }
+.flow-card p { font-size: 0.88rem; color: var(--muted); margin: 0; line-height: 1.5; }
+.svg-eyebrow { font-size: 11px; font-weight: 800; letter-spacing: 0.12em; fill: var(--muted); }
+.svg-dark { fill: var(--dark-ink); }
+.svg-title { font-size: 15px; font-weight: 800; fill: var(--ink); }
+.svg-sub { font-size: 12px; fill: var(--muted); }
+.svg-row { font-size: 12.5px; fill: var(--ink); }
+.svg-mono { font-family: var(--mono); font-size: 11px; fill: var(--muted); }
+.flows-grid .md-body { max-width: 46rem; }
