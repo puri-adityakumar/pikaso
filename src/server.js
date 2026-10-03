@@ -8,7 +8,7 @@
  *   GET  /annotate.js              → public/annotate.js
  *   GET  /frames/:name/mockup.html → HTML with annotate.js injected (never written to disk)
  *   GET  /site/                → redirect to /site/index.html (HTML mode entry)
- *   GET  /site/index.html      → entry frame as a site page (annotate.js injected)
+ *   GET  /site/index.html      → generated index page listing all frames
  *   GET  /site/:name.html      → frame :name as a site page (annotate.js injected)
  *   GET  /api/project              → project.json
  *   GET  /api/annotations/:name    → frames/<name>/annotations.json
@@ -75,6 +75,112 @@ function resolveBoardRoot(opts = {}) {
   if (opts.tmp) return join(tmpdir(), '.pikaso');
   if (opts.global) return join(homedir(), '.pikaso', 'boards', 'default');
   return join(opts.cwd ?? process.cwd(), '.pikaso');
+}
+
+// ---------------------------------------------------------------------------
+// HTML mode: generated index page — lists frames as links to their routes
+// ---------------------------------------------------------------------------
+
+/** Landing palette identity colors (mirrors public/board.js FRAME_COLORS) */
+const SITE_COLORS = ['#62d96b', '#f2cf62', '#a9e8eb', '#f4b8c0', '#9fe7a4'];
+
+function escHtml(s) {
+  return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+/**
+ * Build the /site/index.html listing: one card per frame linking to its page,
+ * with status and open-pin counts. Styled in the shared design language.
+ * @param {string} root  Board root.
+ * @returns {string} HTML
+ */
+function siteIndexPage(root) {
+  let frames = [];
+  let openCounts = {};
+  try {
+    const project = loadProject(root);
+    frames = project.frames ?? [];
+    for (const f of frames) {
+      try {
+        const anns = loadAnnotations(root, f.name);
+        openCounts[f.name] = anns.filter(a => a.status === 'open').length;
+      } catch { openCounts[f.name] = 0; }
+    }
+  } catch { /* no board yet → empty listing */ }
+
+  const cards = frames.map((f, i) => {
+    const color = SITE_COLORS[i % SITE_COLORS.length];
+    const open = openCounts[f.name] ?? 0;
+    const countHtml = open > 0
+      ? `<span class="count">◉ ${open} open</span>`
+      : `<span class="count zero">◎ 0 open</span>`;
+    return `<a class="card" href="/site/${encodeURIComponent(f.name)}.html">
+      <span class="dot" style="background:${color}"></span>
+      <span class="name">${escHtml(f.name)}</span>
+      <span class="meta"><span class="status">${escHtml(f.status)}</span>${countHtml}<span class="size">${f.w} × ${f.h}</span></span>
+    </a>`;
+  }).join('\n');
+
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>pikaso — index</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: "Manrope", -apple-system, "Segoe UI", Roboto, sans-serif;
+    background: #fbf9f4;
+    color: #2b2a26;
+    min-height: 100vh;
+  }
+  .wrap { max-width: 900px; margin: 0 auto; padding: 72px 24px 96px; }
+  .brand {
+    display: inline-flex; align-items: center; gap: 8px;
+    font-family: "Epilogue", var(--sans, sans-serif);
+    font-weight: 800; font-size: 16px; letter-spacing: -0.3px;
+    color: #2b2a26; text-decoration: none; margin-bottom: 28px;
+  }
+  .brand::before {
+    content: ''; width: 13px; height: 13px; border-radius: 50%; background: #62d96b;
+    box-shadow: inset -2px -3px 4px rgba(0,0,0,0.22), inset 2px 3px 4px rgba(255,255,255,0.5);
+  }
+  h1 { font-family: "Lora", Georgia, serif; font-weight: 400; font-size: 30px; margin-bottom: 6px; }
+  .sub { font-size: 13.5px; color: #84837b; margin-bottom: 32px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 16px; }
+  .card {
+    display: flex; flex-direction: column; gap: 10px;
+    background: #fff; border: 1px solid rgba(43,42,38,0.14);
+    border-radius: 12px; padding: 16px 18px;
+    text-decoration: none; color: #2b2a26;
+    box-shadow: 0 10px 26px rgba(43,42,38,0.08);
+    transition: transform 0.2s cubic-bezier(0.6,0,0,1), box-shadow 0.2s cubic-bezier(0.6,0,0,1);
+  }
+  .card:hover { transform: translate(-2px, -2px); box-shadow: 4px 5px 0 -1px rgba(98,217,107,0.45); }
+  .dot { width: 10px; height: 10px; border-radius: 50%; flex: none;
+    box-shadow: inset -1px -2px 2px rgba(0,0,0,0.22), inset 1px 2px 2px rgba(255,255,255,0.5); }
+  .name { font-weight: 800; font-size: 14px; letter-spacing: 0.04em; text-transform: uppercase; }
+  .meta { display: flex; align-items: center; gap: 10px; font-size: 11.5px; }
+  .status { padding: 2px 8px; border-radius: 999px; background: #f4f2ea; color: #84837b; font-weight: 700; }
+  .count { font-weight: 800; }
+  .count.zero { color: #84837b; font-weight: 600; }
+  .size { color: #84837b; font-family: ui-monospace, Consolas, monospace; margin-left: auto; }
+  .empty {
+    border: 1px dashed rgba(43,42,38,0.2); border-radius: 12px;
+    padding: 44px 24px; text-align: center; color: #84837b; font-size: 14px;
+  }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <a class="brand" href="/">pikaso</a>
+    <h1>Mockups</h1>
+    <p class="sub">${frames.length} page${frames.length === 1 ? '' : 's'} · pick one to open it full-size · pins stay live</p>
+    ${frames.length ? `<nav class="grid">${cards}</nav>` : '<div class="empty">No mockups yet — generate a frame and it shows up here.</div>'}
+  </div>
+</body>
+</html>`;
 }
 
 // ---------------------------------------------------------------------------
@@ -153,29 +259,25 @@ function handleRequest(req, res, root, apiHandler) {
 
   // HTML mode: mockups as a browsable multi-page site
   //   /site/            → redirect to /site/index.html
-  //   /site/index.html  → entry frame (named index/home, else the first frame)
-  //   /site/<name>.html → that frame's mockup, annotate.js injected
+  //   /site/index.html  → generated index page listing all frames (entry)
+  //   /site/<name>.html → that frame's mockup, clean, annotate.js injected
   if (req.method === 'GET' && (pathname === '/site' || pathname === '/site/')) {
     res.writeHead(302, { Location: '/site/index.html' });
     res.end();
     return;
   }
+  if (req.method === 'GET' && pathname === '/site/index.html') {
+    res.writeHead(200, { 'Content-Type': MIME['.html'] });
+    res.end(siteIndexPage(root));
+    return;
+  }
   const siteMatch = pathname.match(/^\/site\/([^/]+\.html)$/);
   if (req.method === 'GET' && siteMatch) {
     const file = decodeURIComponent(siteMatch[1]);
-    let mockupPath = null;
-    if (file === 'index.html') {
-      try {
-        const project = loadProject(root);
-        const frames = project.frames ?? [];
-        const entry = frames.find(f => f.name === 'index' || f.name === 'home') ?? frames[0];
-        if (entry) mockupPath = join(root, 'frames', entry.name, 'mockup.html');
-      } catch { /* no project yet → falls through to 404 */ }
-    } else {
-      const name = file.slice(0, -'.html'.length);
-      mockupPath = join(root, 'frames', name, 'mockup.html');
-    }
-    if (!mockupPath || mockupPath.includes('..') || !existsSync(mockupPath)) {
+    // Note: a frame literally named "index" is shadowed by the listing page.
+    const name = file.slice(0, -'.html'.length);
+    const mockupPath = join(root, 'frames', name, 'mockup.html');
+    if (name.includes('..') || !existsSync(mockupPath)) {
       res.writeHead(404, { 'Content-Type': MIME['.html'] });
       res.end('<h1>404 — page not found</h1>');
       return;

@@ -154,7 +154,7 @@ test('GET /site/ redirects to /site/index.html', async () => {
   }
 });
 
-test('GET /site/index.html serves the first frame with annotate injected', async () => {
+test('GET /site/index.html returns the generated listing with frame links', async () => {
   const root = tmpRoot();
   let server;
   try {
@@ -169,28 +169,33 @@ test('GET /site/index.html serves the first frame with annotate injected', async
     assert.equal(res.status, 200);
     assert.ok(res.headers.get('content-type')?.includes('text/html'));
     const text = await res.text();
-    assert.ok(text.includes('<h1>Entry</h1>'), 'entry frame content served');
-    assert.ok(text.includes('annotate.js'), 'annotate.js injected');
+    assert.ok(text.includes('Mockups'), 'listing title present');
+    assert.ok(text.includes('href="/site/landing.html"'), 'link to landing page');
+    assert.ok(text.includes('href="/site/about.html"'), 'link to about page');
+    assert.ok(!text.includes('<h1>Entry</h1>'), 'no mockup content inlined');
   } finally {
     server?.close();
     rmSync(root, { recursive: true, force: true });
   }
 });
 
-test('GET /site/index.html prefers the frame named index', async () => {
+test('GET /site/index.html shows open pin counts per frame', async () => {
   const root = tmpRoot();
   let server;
   try {
     createFrame(root, 'landing');
-    writeFileSync(join(root, 'frames', 'landing', 'mockup.html'), '<html><body><h1>Landing</h1></body></html>', 'utf8');
-    createFrame(root, 'index');
-    writeFileSync(join(root, 'frames', 'index', 'mockup.html'), '<html><body><h1>Home</h1></body></html>', 'utf8');
+    writeFileSync(join(root, 'frames', 'landing', 'mockup.html'), '<html><body><h1>Entry</h1></body></html>', 'utf8');
+    const annPath = join(root, 'frames', 'landing', 'annotations.json');
+    writeFileSync(annPath, JSON.stringify([
+      { id: 'a1', status: 'open', text: 'x' },
+      { id: 'a2', status: 'resolved', text: 'y' },
+    ]), 'utf8');
 
     ({ server } = await startServer({ port: 0, root }));
     const { port } = server.address();
     const res = await get(port, '/site/index.html');
     const text = await res.text();
-    assert.ok(text.includes('<h1>Home</h1>'), 'index frame wins over first frame');
+    assert.ok(text.includes('◉ 1 open'), 'open count shown');
   } finally {
     server?.close();
     rmSync(root, { recursive: true, force: true });

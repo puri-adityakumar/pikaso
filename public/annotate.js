@@ -15,9 +15,10 @@
   'use strict';
 
   // -------------------------------------------------------------------------
-  // Frame name — derived from the URL path: /frames/<name>/mockup.html
+  // Frame name — derived from the URL path: /frames/<name>/mockup.html or /site/<name>.html
   // -------------------------------------------------------------------------
-  const pathMatch = location.pathname.match(/\/frames\/([^/]+)\/mockup\.html/);
+  const pathMatch = location.pathname.match(/\/frames\/([^/]+)\/mockup\.html/)
+    || location.pathname.match(/\/site\/([^/]+)\.html/);
   if (!pathMatch) return; // not running inside a pikaso frame
   const FRAME_NAME = decodeURIComponent(pathMatch[1]);
 
