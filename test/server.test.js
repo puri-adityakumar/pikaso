@@ -202,7 +202,7 @@ test('GET /site/index.html shows open pin counts per frame', async () => {
   }
 });
 
-test('GET /site/:name.html serves that frame as a page', async () => {
+test('GET /site/:name.html wraps the frame as a centered screen page', async () => {
   const root = tmpRoot();
   let server;
   try {
@@ -214,8 +214,33 @@ test('GET /site/:name.html serves that frame as a page', async () => {
     const res = await get(port, '/site/pricing.html');
     assert.equal(res.status, 200);
     const text = await res.text();
-    assert.ok(text.includes('<h1>Pricing</h1>'));
-    assert.ok(text.includes('annotate.js'));
+    assert.ok(text.includes('/frames/pricing/mockup.html'), 'mockup served via iframe at natural size');
+    assert.ok(text.includes('pricing'), 'frame name in caption');
+    assert.ok(text.includes('/site/index.html'), 'back-to-index link');
+    assert.ok(text.includes('/site/all.html'), 'all-screens link');
+  } finally {
+    server?.close();
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test('GET /site/all.html stacks every frame on one page', async () => {
+  const root = tmpRoot();
+  let server;
+  try {
+    createFrame(root, 'landing');
+    writeFileSync(join(root, 'frames', 'landing', 'mockup.html'), '<html><body><h1>Home</h1></body></html>', 'utf8');
+    createFrame(root, 'pricing');
+    writeFileSync(join(root, 'frames', 'pricing', 'mockup.html'), '<html><body><h1>Pricing</h1></body></html>', 'utf8');
+
+    ({ server } = await startServer({ port: 0, root }));
+    const { port } = server.address();
+    const res = await get(port, '/site/all.html');
+    assert.equal(res.status, 200);
+    const text = await res.text();
+    assert.ok(text.includes('All screens'), 'sheet title');
+    assert.ok(text.includes('/frames/landing/mockup.html'), 'landing screen present');
+    assert.ok(text.includes('/frames/pricing/mockup.html'), 'pricing screen present');
   } finally {
     server?.close();
     rmSync(root, { recursive: true, force: true });
