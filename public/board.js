@@ -29,6 +29,12 @@ const frameIframes = new Map();
 /** @type {Map<string, HTMLElement>} frameName → label element */
 const frameLabels = new Map();
 
+/** Landing palette — identity colors so frames are distinguishable at a glance */
+const FRAME_COLORS = ['#62d96b', '#f2cf62', '#a9e8eb', '#f4b8c0', '#9fe7a4'];
+
+/** @type {Map<string, string>} frameName → its identity color */
+const frameColors = new Map();
+
 // ---------------------------------------------------------------------------
 // DOM refs
 // ---------------------------------------------------------------------------
@@ -206,8 +212,10 @@ function renderLabel(name, status, openCount) {
   const statusCls = status === 'locked' ? 'frame-status locked' : 'frame-status';
   const annCls = openCount > 0 ? 'ann-count' : 'ann-count zero';
   const annText = openCount > 0 ? `◉ ${openCount} open` : '◎ 0 open';
+  const color = frameColors.get(name) ?? FRAME_COLORS[0];
 
   el.innerHTML =
+    `<span class="frame-dot" style="background:${color}"></span>` +
     `<span class="frame-name">${escHtml(name)}</span>` +
     `<span class="${statusCls}">${status}</span>` +
     `<span class="${annCls}">${annText}</span>`;
@@ -240,8 +248,12 @@ async function renderBoard(project) {
   }
 
   // Add / update frames
-  for (const frame of project.frames) {
-    const { name, x, y, w, h, status } = frame;
+  for (let i = 0; i < project.frames.length; i++) {
+    const { name, x, y, w, h, status } = project.frames[i];
+
+    // Identity color — frames get distinct dot + border tint from the landing palette
+    const color = FRAME_COLORS[i % FRAME_COLORS.length];
+    frameColors.set(name, color);
 
     let wrapper = /** @type {HTMLDivElement|null} */ (canvas.querySelector(`[data-frame="${CSS.escape(name)}"]`));
 
@@ -285,6 +297,7 @@ async function renderBoard(project) {
     iframe.height = String(h);
     iframe.style.width  = `${w}px`;
     iframe.style.height = `${h}px`;
+    iframe.style.borderColor = color + 'b3';
 
     // Fetch annotation count and render label
     const openCount = await fetchOpenCount(name);
