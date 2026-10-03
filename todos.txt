@@ -1,5 +1,5 @@
-- keep design the landing + add docs when project is ready
+- landing redesigned + docs live (docs/examples/changelog/protocol + llms.txt)
 - want and HTML canvas intead figma canvas option for design audit later planning
 - testing and also check again automated testing
 - publishing in npx, skillsh and calude plugin
-- add AGENTS.md and set some rules
+- AGENTS.md added with repo rules (board UI + light/dark + frame dots also done)
