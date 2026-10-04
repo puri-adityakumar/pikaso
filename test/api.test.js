@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import { strict as assert } from 'node:assert';
-import { mkdtempSync, rmSync } from 'node:fs';
+import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -120,6 +120,59 @@ test('POST /api/annotations with missing fields returns 400', async () => {
       body: JSON.stringify({ selector: 'h1' }), // missing text, box, viewport
     });
     assert.equal(status, 400);
+  } finally {
+    server?.close();
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test('POST /api/annotations accepts a freehand payload and stores points', async () => {
+  const root = tmpRoot();
+  let server;
+  try {
+    createFrame(root, 'sketch');
+    ({ server } = await startServer({ port: 0, root }));
+    const { port } = server.address();
+    const res = await fetch(`http://127.0.0.1:${port}/api/annotations/sketch`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        type: 'freehand',
+        points: [[10, 10], [40, 25], [80, 20]],
+        color: '#f0883e',
+        viewport: { w: 800, h: 600 },
+        text: 'Freehand annotation',
+      }),
+    });
+    assert.equal(res.status, 201);
+    const ann = await res.json();
+    assert.equal(ann.type, 'freehand');
+    assert.equal(ann.selector, null);
+    assert.equal(ann.points.length, 3);
+    assert.equal(ann.color, '#f0883e');
+
+    const stored = JSON.parse(readFileSync(join(root, 'frames', 'sketch', 'annotations.json'), 'utf8'));
+    assert.equal(stored[0].type, 'freehand');
+    assert.equal(stored[0].status, 'open');
+  } finally {
+    server?.close();
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test('POST /api/annotations rejects a freehand payload without points', async () => {
+  const root = tmpRoot();
+  let server;
+  try {
+    createFrame(root, 'sketch2');
+    ({ server } = await startServer({ port: 0, root }));
+    const { port } = server.address();
+    const res = await fetch(`http://127.0.0.1:${port}/api/annotations/sketch2`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ type: 'freehand', viewport: { w: 800, h: 600 }, text: 'no points' }),
+    });
+    assert.equal(res.status, 400);
   } finally {
     server?.close();
     rmSync(root, { recursive: true, force: true });

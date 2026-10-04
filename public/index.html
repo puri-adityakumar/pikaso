@@ -411,6 +411,25 @@
       box-shadow: 0 16px 36px rgba(43, 42, 38, 0.18);
     }
     #toast.show { opacity: 1; }
+
+    /* ── Annotate button — arms annotation mode in the visible frame(s) ── */
+    #annotate-btn {
+      background: var(--card);
+      border: 1px solid var(--edge);
+      border-radius: 8px;
+      padding: 8px 12px;
+      color: var(--ink);
+      font: 700 12.5px/1 var(--sans);
+      cursor: pointer;
+      white-space: nowrap;
+      transition: background 0.15s ease, color 0.15s ease, transform 0.15s var(--ease), box-shadow 0.15s var(--ease);
+    }
+    #annotate-btn:hover { background: var(--field); transform: translateY(-1px); }
+    #annotate-btn.armed {
+      background: var(--green);
+      color: var(--cta-ink);
+      border-color: transparent;
+    }
   </style>
 </head>
 <body>
@@ -425,6 +444,7 @@
     </span>
     <span class="spacer"></span>
     <span id="bob-status">Bob: idle</span>
+    <button id="annotate-btn" type="button" title="Toggle annotate mode">✎ Annotate</button>
     <button id="lock-btn" type="button">Lock draft › implement</button>
     <a id="pages-link" href="/site/index.html" title="Read the mockups as pages">pages ↗</a>
     <button id="theme-toggle" type="button" title="Toggle light / dark" aria-label="Toggle theme">☾</button>

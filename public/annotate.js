@@ -151,6 +151,65 @@
       z-index: 2147483645;
       pointer-events: none;
     }
+
+    /* Floating annotate button (bottom-left) */
+    .pikaso-annotate-fab {
+      position: fixed;
+      bottom: 18px; left: 18px;
+      z-index: 2147483647;
+      font: 700 12px/1 "Manrope", -apple-system, system-ui, sans-serif;
+      color: #f4f2ea;
+      background: #1d1c19;
+      border: 1px solid rgba(244,242,234,0.2);
+      border-radius: 999px;
+      padding: 10px 16px;
+      cursor: pointer;
+      box-shadow: 0 10px 26px rgba(43,42,38,0.35);
+      user-select: none;
+      transition: background 0.15s ease, color 0.15s ease, transform 0.15s ease;
+    }
+    .pikaso-annotate-fab:hover { transform: translateY(-1px); }
+    .pikaso-annotate-fab.armed {
+      background: #62d96b;
+      color: #1d1c19;
+      border-color: transparent;
+      box-shadow: 3px 4px 0 -1px rgba(29,28,25,0.45);
+    }
+
+    /* Mini toolbar (visible while armed) */
+    .pikaso-annotate-toolbar {
+      position: fixed;
+      bottom: 64px; left: 18px;
+      z-index: 2147483647;
+      display: none;
+      gap: 4px;
+      background: #1d1c19;
+      border: 1px solid rgba(244,242,234,0.2);
+      border-radius: 10px;
+      padding: 5px;
+      box-shadow: 0 10px 26px rgba(43,42,38,0.35);
+    }
+    .pikaso-annotate-toolbar.visible { display: flex; }
+    .pikaso-tool-chip {
+      font: 700 11.5px/1 "Manrope", -apple-system, system-ui, sans-serif;
+      color: rgba(244,242,234,0.7);
+      background: none;
+      border: none;
+      border-radius: 7px;
+      padding: 7px 11px;
+      cursor: pointer;
+    }
+    .pikaso-tool-chip:hover { color: #f4f2ea; }
+    .pikaso-tool-chip.on { background: #f2cf62; color: #1d1c19; }
+
+    /* Freehand drawing canvas */
+    #pikaso-freehand-canvas {
+      position: fixed;
+      inset: 0;
+      z-index: 2147483644;
+      pointer-events: none;
+    }
+    #pikaso-freehand-canvas.drawing { pointer-events: auto; cursor: crosshair; }
   `;
   document.head.appendChild(style);
 
@@ -200,8 +259,11 @@
   }
 
   // -------------------------------------------------------------------------
-  // Hover outline
+  // Annotate mode — OFF until armed via the floating button or a board message.
+  // While idle, clicks pass through to the mockup (links work as normal).
   // -------------------------------------------------------------------------
+  let armed = false;
+  let tool = 'pin'; // 'pin' | 'pen'
   let hoveredEl = null;
 
   function enableHover() {
@@ -218,7 +280,7 @@
 
   // We attach mousemove to document (works even through the transparent overlay layer)
   document.addEventListener('mousemove', (e) => {
-    if (commentBox) return; // comment box open — don't track hover
+    if (!armed || tool !== 'pin' || commentBox) return; // idle / pen / comment box — no hover
     const el = document.elementFromPoint(e.clientX, e.clientY);
     if (!el || el === document.body || el === document.documentElement) return;
     if (el.closest('#pikaso-overlay, #pikaso-pins-layer, .pikaso-comment-box, .pikaso-pin, .pikaso-pin-tooltip')) return;
@@ -321,8 +383,9 @@
   // -------------------------------------------------------------------------
 
   document.addEventListener('click', (e) => {
+    if (!armed || tool !== 'pin') return; // annotate mode only, pin tool only
     // Ignore clicks on our own UI
-    if (e.target.closest('.pikaso-comment-box, .pikaso-pin, .pikaso-pin-tooltip')) return;
+    if (e.target.closest('.pikaso-comment-box, .pikaso-pin, .pikaso-pin-tooltip, .pikaso-annotate-fab, .pikaso-annotate-toolbar')) return;
     // Ignore clicks on overlay / pins layer
     if (e.target.closest('#pikaso-overlay, #pikaso-pins-layer')) return;
 
@@ -352,7 +415,8 @@
   }
 
   /**
-   * Render annotation pins on the page.
+   * Render annotation pins on the page (element pins only — freehand strokes
+   * are drawn on the canvas overlay).
    * @param {Array<{id:string,selector:string,box:{x,y,w,h},text:string,status:string}>} annotations
    */
   function renderPins(annotations) {
@@ -441,12 +505,16 @@
   // Load pins from API
   // -------------------------------------------------------------------------
 
+  let lastAnnotations = [];
+
   async function loadPins() {
     try {
       const res = await fetch(`/api/annotations/${encodeURIComponent(FRAME_NAME)}`);
       if (!res.ok) return;
       const anns = await res.json();
-      renderPins(anns);
+      lastAnnotations = anns;
+      renderPins(anns.filter(a => (a.type ?? 'pin') === 'pin'));
+      drawFreehand(anns);
     } catch { /* server may not be running */ }
   }
 
@@ -463,9 +531,161 @@
   }
 
   // -------------------------------------------------------------------------
+  // Freehand pen — strokes live on a canvas overlay; each stroke is stored
+  // as a freehand annotation (points + color) so it survives reloads and
+  // reaches the agent as context.
+  // -------------------------------------------------------------------------
+
+  const freehandCanvas = document.createElement('canvas');
+  freehandCanvas.id = 'pikaso-freehand-canvas';
+  document.body.appendChild(freehandCanvas);
+  const fctx = freehandCanvas.getContext('2d');
+
+  function sizeFreehandCanvas() {
+    freehandCanvas.width = window.innerWidth;
+    freehandCanvas.height = window.innerHeight;
+    // redraw persisted strokes after resize
+    if (lastAnnotations.length) drawFreehand(lastAnnotations);
+  }
+  window.addEventListener('resize', sizeFreehandCanvas);
+
+  let currentStroke = null;
+
+  function drawStroke(points, color) {
+    if (points.length < 2) return;
+    fctx.strokeStyle = color;
+    fctx.lineWidth = 3;
+    fctx.lineCap = 'round';
+    fctx.lineJoin = 'round';
+    fctx.beginPath();
+    fctx.moveTo(points[0][0], points[0][1]);
+    for (let i = 1; i < points.length; i++) fctx.lineTo(points[i][0], points[i][1]);
+    fctx.stroke();
+  }
+
+  function clearFreehandCanvas() {
+    fctx.clearRect(0, 0, freehandCanvas.width, freehandCanvas.height);
+  }
+
+  function drawFreehand(annotations) {
+    clearFreehandCanvas();
+    for (const ann of annotations) {
+      if (ann.type === 'freehand' && Array.isArray(ann.points)) {
+        drawStroke(ann.points, ann.color || '#f0883e');
+      }
+    }
+  }
+
+  freehandCanvas.addEventListener('pointerdown', (e) => {
+    if (!armed || tool !== 'pen') return;
+    e.preventDefault();
+    currentStroke = [[e.clientX, e.clientY]];
+    freehandCanvas.setPointerCapture(e.pointerId);
+  });
+  freehandCanvas.addEventListener('pointermove', (e) => {
+    if (!currentStroke) return;
+    currentStroke.push([e.clientX, e.clientY]);
+    // redraw persisted + current partial stroke
+    drawFreehand(lastAnnotations);
+    drawStroke(currentStroke, '#f0883e');
+  });
+  freehandCanvas.addEventListener('pointerup', async () => {
+    if (!currentStroke) return;
+    const points = currentStroke;
+    currentStroke = null;
+    if (points.length < 2) { drawFreehand(lastAnnotations); return; }
+    const xs = points.map(pt => pt[0]);
+    const ys = points.map(pt => pt[1]);
+    try {
+      const res = await fetch(`/api/annotations/${encodeURIComponent(FRAME_NAME)}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: 'freehand',
+          points,
+          color: '#f0883e',
+          viewport: { w: window.innerWidth, h: window.innerHeight },
+          text: 'Freehand annotation',
+        }),
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      await loadPins();
+    } catch (err) {
+      alert(`Failed to save freehand stroke: ${err.message}`);
+      drawFreehand(lastAnnotations);
+    }
+  });
+
+  // -------------------------------------------------------------------------
+  // Annotate button + toolbar (floating) — the way to ARM annotation mode.
+  // The board top bar mirrors this state over postMessage.
+  // -------------------------------------------------------------------------
+
+  const fab = document.createElement('button');
+  fab.className = 'pikaso-annotate-fab';
+  fab.type = 'button';
+  fab.textContent = '✎ Annotate';
+
+  const toolbar = document.createElement('div');
+  toolbar.className = 'pikaso-annotate-toolbar';
+  const pinChip = document.createElement('button');
+  pinChip.className = 'pikaso-tool-chip on';
+  pinChip.type = 'button';
+  pinChip.textContent = '📌 Pin';
+  const penChip = document.createElement('button');
+  penChip.className = 'pikaso-tool-chip';
+  penChip.type = 'button';
+  penChip.textContent = '✏️ Pen';
+  const doneChip = document.createElement('button');
+  doneChip.className = 'pikaso-tool-chip';
+  doneChip.type = 'button';
+  doneChip.textContent = 'Done';
+  toolbar.appendChild(pinChip);
+  toolbar.appendChild(penChip);
+  toolbar.appendChild(doneChip);
+
+  document.body.appendChild(fab);
+  document.body.appendChild(toolbar);
+
+  function setTool(next) {
+    tool = next;
+    pinChip.classList.toggle('on', tool === 'pin');
+    penChip.classList.toggle('on', tool === 'pen');
+    disableHover();
+    freehandCanvas.classList.toggle('drawing', armed && tool === 'pen');
+  }
+
+  function setArmed(next) {
+    armed = next;
+    fab.classList.toggle('armed', armed);
+    fab.textContent = armed ? '✎ Annotating' : '✎ Annotate';
+    toolbar.classList.toggle('visible', armed);
+    if (!armed) {
+      disableHover();
+      setTool('pin');
+      drawFreehand(lastAnnotations); // drop the in-progress stroke
+    } else {
+      enableHover();
+    }
+  }
+
+  fab.addEventListener('click', () => setArmed(!armed));
+  pinChip.addEventListener('click', () => setTool('pin'));
+  penChip.addEventListener('click', () => setTool('pen'));
+  doneChip.addEventListener('click', () => setArmed(false));
+
+  // Board → frame remote control (top-bar Annotate button)
+  window.addEventListener('message', (e) => {
+    if (e.data && e.data.type === 'pikaso-annotate') {
+      setArmed(Boolean(e.data.active));
+    }
+  });
+
+  // -------------------------------------------------------------------------
   // Init
   // -------------------------------------------------------------------------
 
   loadPins();
+  sizeFreehandCanvas();
 
 })();

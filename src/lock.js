@@ -130,7 +130,7 @@ function buildDesignSpec(project, frameData, root) {
       for (const ann of resolved) {
         lines.push(`#### ${ann.id.slice(0, 8)} — resolved`);
         lines.push('');
-        lines.push(`- **Selector:** \`${ann.selector}\``);
+        lines.push(`- **Selector:** \`${ann.type === 'freehand' ? '(freehand drawing)' : ann.selector}\``);
         lines.push(`- **Comment:** ${ann.text}`);
         lines.push(`- **Created:** ${ann.createdAt}`);
         lines.push(`- **Resolved:** ${ann.resolvedAt ?? 'unknown'}`);
@@ -144,7 +144,7 @@ function buildDesignSpec(project, frameData, root) {
       for (const ann of open) {
         lines.push(`#### ${ann.id.slice(0, 8)} — open`);
         lines.push('');
-        lines.push(`- **Selector:** \`${ann.selector}\``);
+        lines.push(`- **Selector:** \`${ann.type === 'freehand' ? '(freehand drawing)' : ann.selector}\``);
         lines.push(`- **Comment:** ${ann.text}`);
         lines.push(`- **Created:** ${ann.createdAt}`);
         lines.push('');

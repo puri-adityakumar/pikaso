@@ -57,18 +57,38 @@ function send500(res, msg) { sendJson(res, 500, { error: msg }); }
 
 /**
  * Validate an annotation payload from POST /api/annotations/:frame.
+ * Two types:
+ *   - pin      (default): selector + box + viewport + text
+ *   - freehand: points [[x,y],...] + viewport + text (+ optional color); selector omitted
  * @param {unknown} body
- * @returns {{ selector: string, box: object, viewport: object, text: string } | null}
+ * @returns {object | null} Normalized payload, or null when invalid.
  */
 function validateAnnotationBody(body) {
   if (!body || typeof body !== 'object') return null;
   const b = /** @type {any} */ (body);
-  if (typeof b.selector !== 'string' || !b.selector.trim()) return null;
   if (typeof b.text !== 'string' || !b.text.trim()) return null;
+  if (!b.viewport || typeof b.viewport.w !== 'number' || typeof b.viewport.h !== 'number') return null;
+
+  if (b.type === 'freehand') {
+    const pts = b.points;
+    if (!Array.isArray(pts) || pts.length < 2 ||
+        !pts.every(pt => Array.isArray(pt) && pt.length === 2 &&
+          typeof pt[0] === 'number' && Number.isFinite(pt[0]) &&
+          typeof pt[1] === 'number' && Number.isFinite(pt[1]))) return null;
+    const xs = pts.map(pt => pt[0]);
+    const ys = pts.map(pt => pt[1]);
+    const box = {
+      x: Math.min(...xs), y: Math.min(...ys),
+      w: Math.max(...xs) - Math.min(...xs), h: Math.max(...ys) - Math.min(...ys),
+    };
+    const color = typeof b.color === 'string' && /^#[0-9a-fA-F]{3,8}$/.test(b.color) ? b.color : '#f0883e';
+    return { type: 'freehand', selector: null, points: pts, color, box, viewport: b.viewport, text: b.text.trim() };
+  }
+
+  if (typeof b.selector !== 'string' || !b.selector.trim()) return null;
   if (!b.box || typeof b.box.x !== 'number' || typeof b.box.y !== 'number' ||
       typeof b.box.w !== 'number' || typeof b.box.h !== 'number') return null;
-  if (!b.viewport || typeof b.viewport.w !== 'number' || typeof b.viewport.h !== 'number') return null;
-  return { selector: b.selector.trim(), box: b.box, viewport: b.viewport, text: b.text.trim() };
+  return { type: 'pin', selector: b.selector.trim(), box: b.box, viewport: b.viewport, text: b.text.trim() };
 }
 
 // ---------------------------------------------------------------------------
@@ -132,7 +152,9 @@ export function handleApiRequest(req, res, root, ctx) {
       /** @type {import('./board.js').Annotation} */
       const ann = {
         id: randomUUID(),
+        type: validated.type,
         selector: validated.selector,
+        ...(validated.type === 'freehand' ? { points: validated.points, color: validated.color } : {}),
         box: validated.box,
         viewport: validated.viewport,
         text: validated.text,

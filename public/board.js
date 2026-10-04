@@ -44,6 +44,7 @@ const boardRoot   = /** @type {HTMLDivElement}    */ (document.getElementById('b
 const zoomLabel   = /** @type {HTMLSpanElement}   */ (document.getElementById('zoom-label'));
 const boardName   = /** @type {HTMLSpanElement}   */ (document.getElementById('board-name'));
 const toastEl       = /** @type {HTMLDivElement}    */ (document.getElementById('toast'));
+const annotateBtn   = /** @type {HTMLButtonElement} */ (document.getElementById('annotate-btn'));
 const modalOverlay  = /** @type {HTMLDivElement}    */ (document.getElementById('modal-overlay'));
 const modalStats    = /** @type {HTMLParagraphElement} */ (document.getElementById('modal-stats'));
 const modalRunBtn   = /** @type {HTMLButtonElement} */ (document.getElementById('modal-run-btn'));
@@ -413,11 +414,40 @@ siteHomeBtn.addEventListener('click', () => {
   siteFrame.src = '/site/index.html';
 });
 
-// Route chip syncs as you browse the site inside the frame
-siteFrame.addEventListener('load', () => {
+// ---------------------------------------------------------------------------
+// Annotate mode — the top-bar button arms/calarms annotation inside the
+// visible mockup frame(s) over postMessage. annotate.js does the rest.
+// ---------------------------------------------------------------------------
+
+let annotateArmed = false;
+
+function broadcastAnnotateState() {
+  const msg = { type: 'pikaso-annotate', active: annotateArmed };
+  if (document.body.dataset.mode === 'html') {
+    siteFrame.contentWindow?.postMessage(msg, '*');
+  } else {
+    for (const f of frameIframes.values()) {
+      f.contentWindow?.postMessage(msg, '*');
+    }
+  }
+}
+
+annotateBtn.addEventListener('click', () => {
+  annotateArmed = !annotateArmed;
+  annotateBtn.classList.toggle('armed', annotateArmed);
+  annotateBtn.textContent = annotateArmed ? '✓ Annotating' : '✎ Annotate';
+  broadcastAnnotateState();
+});
+
+// Re-assert the armed state after the site frame navigates to another page
+const syncRouteChip = () => {
   try {
     siteRouteEl.textContent = siteFrame.contentWindow.location.pathname;
   } catch { /* same-origin always, but stay safe */ }
+};
+siteFrame.addEventListener('load', () => {
+  syncRouteChip();
+  if (annotateArmed) broadcastAnnotateState();
 });
 
 // ---------------------------------------------------------------------------

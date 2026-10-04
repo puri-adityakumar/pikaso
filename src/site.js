@@ -88,9 +88,22 @@ function siteHead(title) {
     display: block; border: 1px solid rgba(43,42,38,0.14); border-radius: 10px;
     background: #fff; box-shadow: 0 16px 36px rgba(43,42,38,0.12);
   }
-</style>
+  </style>
 </head>
 `;
+}
+
+/** Relay: forward board postMessages (annotate mode) into the mockup iframe */
+function siteRelayScript() {
+  return `<script>
+  window.addEventListener('message', function (e) {
+    if (e.data && e.data.type === 'pikaso-annotate') {
+      document.querySelectorAll('iframe').forEach(function (f) {
+        f.contentWindow.postMessage(e.data, '*');
+      });
+    }
+  });
+  <\/script>`;
 }
 
 /** Head row for one screen: dot + name + status chip + pin count + size */
@@ -168,6 +181,7 @@ export function siteIndexPage(root) {
       padding: 44px 24px; text-align: center; color: #84837b; font-size: 14px;
     }
   </style>
+${siteRelayScript()}
 </body>
 </html>`;
 }
@@ -188,6 +202,7 @@ export function siteAllPage(root) {
     <p style="font-size:13.5px; color:#84837b; margin-bottom:44px;">${frames.length} page${frames.length === 1 ? '' : 's'} stacked · <a href="/site/index.html">‹ back to index</a></p>
     ${sections || '<div style="border:1px dashed rgba(43,42,38,0.2); border-radius:12px; padding:44px 24px; text-align:center; color:#84837b;">No mockups yet.</div>'}
   </div>
+${siteRelayScript()}
 </body>
 </html>`;
 }
@@ -224,6 +239,7 @@ export function screenPage(root, name) {
       ${link('all screens', '/site/all.html')}
     </div>
   </main>
+${siteRelayScript()}
 </body>
 </html>`;
 }
