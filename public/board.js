@@ -43,14 +43,12 @@ const canvas      = /** @type {HTMLDivElement}    */ (document.getElementById('c
 const boardRoot   = /** @type {HTMLDivElement}    */ (document.getElementById('board-root'));
 const zoomLabel   = /** @type {HTMLSpanElement}   */ (document.getElementById('zoom-label'));
 const boardName   = /** @type {HTMLSpanElement}   */ (document.getElementById('board-name'));
-const newFrameInput = /** @type {HTMLInputElement}  */ (document.getElementById('new-frame-input'));
-const newFrameBtn   = /** @type {HTMLButtonElement} */ (document.getElementById('new-frame-btn'));
+const toastEl       = /** @type {HTMLDivElement}    */ (document.getElementById('toast'));
 const modalOverlay  = /** @type {HTMLDivElement}    */ (document.getElementById('modal-overlay'));
 const modalStats    = /** @type {HTMLParagraphElement} */ (document.getElementById('modal-stats'));
 const modalRunBtn   = /** @type {HTMLButtonElement} */ (document.getElementById('modal-run-btn'));
 const modalCopyBtn  = /** @type {HTMLButtonElement} */ (document.getElementById('modal-copy-btn'));
 const modalCancelBtn = /** @type {HTMLButtonElement} */ (document.getElementById('modal-cancel-btn'));
-const toastEl       = /** @type {HTMLDivElement}    */ (document.getElementById('toast'));
 
 // HTML view (site pane) + crossing links
 const siteView      = /** @type {HTMLDivElement}    */ (document.getElementById('site-view'));
@@ -312,57 +310,6 @@ async function renderBoard(project) {
     renderLabel(name, status, openCount);
   }
 }
-
-// ---------------------------------------------------------------------------
-// New Frame
-// ---------------------------------------------------------------------------
-
-/**
- * Submit the new-frame form.
- */
-async function submitNewFrame() {
-  const description = newFrameInput.value.trim();
-  if (!description) {
-    newFrameInput.focus();
-    return;
-  }
-
-  // Derive a safe name from the description (lowercase, replace spaces/punctuation with -)
-  const name = description
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '')
-    .slice(0, 40) || 'frame';
-
-  newFrameBtn.disabled = true;
-  newFrameBtn.textContent = 'Creating…';
-
-  try {
-    await apiFetch('/api/frames', {
-      method: 'POST',
-      body: JSON.stringify({ name, description }),
-    });
-
-    newFrameInput.value = '';
-
-    // Show the Bob prompt hint
-    toast(`Frame "${name}" created — ask Bob: "Design the ${description} screen for @pikaso"`, 5000);
-
-    // Reload board
-    const project = await apiFetch('/api/project');
-    await renderBoard(project);
-  } catch (err) {
-    toast(`Error: ${err.message}`);
-  } finally {
-    newFrameBtn.disabled = false;
-    newFrameBtn.textContent = '+ Generate mockup';
-  }
-}
-
-newFrameBtn.addEventListener('click', submitNewFrame);
-newFrameInput.addEventListener('keydown', (e) => {
-  if (e.key === 'Enter') submitNewFrame();
-});
 
 // ---------------------------------------------------------------------------
 // Lock modal
