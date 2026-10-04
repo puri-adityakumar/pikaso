@@ -7,5 +7,7 @@
     "custom": "node path/to/agent-runner.js"
   },
   "boardRoot": ".pikaso",
-  "defaultPort": 7625
+  "defaultPort": 7625,
+  "defaultView": "html",
+  "_defaultView_options": "html (index + screen pages) | canvas (infinite board)"
 }

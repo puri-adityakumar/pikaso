@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import { strict as assert } from 'node:assert';
-import { mkdtempSync, readdirSync, existsSync, rmSync } from 'node:fs';
+import { mkdtempSync, readdirSync, existsSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { spawnSync } from 'node:child_process';
@@ -73,6 +73,69 @@ test('init is idempotent — re-running does not duplicate files', async () => {
 
     const skillEntries = readdirSync(join(dest, 'pikaso.skill'));
     assert.equal(skillEntries.length, 1, `expected 1 file in pikaso.skill/, got ${skillEntries.join(', ')}`);
+  } finally {
+    rmSync(cwd, { recursive: true, force: true });
+  }
+});
+
+// ---------------------------------------------------------------------------
+// Default view choice (install-time)
+// ---------------------------------------------------------------------------
+
+test('init defaults the workspace config to the html view', async () => {
+  const { init } = await import('../src/init.js');
+  const cwd = makeTmp();
+  try {
+    const { view } = await init({ cwd });
+    assert.equal(view, 'html', 'html is the install default');
+    const cfg = JSON.parse(readFileSync(join(cwd, 'pikaso.config.json'), 'utf8'));
+    assert.equal(cfg.defaultView, 'html');
+  } finally {
+    rmSync(cwd, { recursive: true, force: true });
+  }
+});
+
+test('init --view canvas writes the canvas default', async () => {
+  const { init } = await import('../src/init.js');
+  const cwd = makeTmp();
+  try {
+    const { view } = await init({ cwd, view: 'canvas' });
+    assert.equal(view, 'canvas');
+    const cfg = JSON.parse(readFileSync(join(cwd, 'pikaso.config.json'), 'utf8'));
+    assert.equal(cfg.defaultView, 'canvas');
+  } finally {
+    rmSync(cwd, { recursive: true, force: true });
+  }
+});
+
+test('init merges defaultView into an existing config without clobbering', async () => {
+  const { init } = await import('../src/init.js');
+  const cwd = makeTmp();
+  try {
+    writeFileSync(join(cwd, 'pikaso.config.json'), JSON.stringify({ defaultPort: 9999, agentCommand: 'bob --non-interactive' }), 'utf8');
+    const { view } = await init({ cwd, view: 'canvas' });
+    assert.equal(view, 'canvas');
+    const cfg = JSON.parse(readFileSync(join(cwd, 'pikaso.config.json'), 'utf8'));
+    assert.equal(cfg.defaultView, 'canvas');
+    assert.equal(cfg.defaultPort, 9999, 'existing keys preserved');
+    assert.equal(cfg.agentCommand, 'bob --non-interactive', 'existing keys preserved');
+  } finally {
+    rmSync(cwd, { recursive: true, force: true });
+  }
+});
+
+test('CLI: pikaso init --view canvas writes the config', () => {
+  const cwd = makeTmp();
+  try {
+    const result = spawnSync(process.execPath, [bin, 'init', '--view', 'canvas'], {
+      encoding: 'utf8',
+      cwd,
+    });
+    assert.strictEqual(result.status, 0, `stderr: ${result.stderr}`);
+    assert.match(result.stdout, /Default board view: canvas/);
+    assert.ok(existsSync(join(cwd, 'pikaso.config.json')), 'workspace config written');
+    const cfg = JSON.parse(readFileSync(join(cwd, 'pikaso.config.json'), 'utf8'));
+    assert.equal(cfg.defaultView, 'canvas');
   } finally {
     rmSync(cwd, { recursive: true, force: true });
   }

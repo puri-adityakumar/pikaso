@@ -88,12 +88,29 @@ function resolveBoardRoot(opts = {}) {
 // ---------------------------------------------------------------------------
 
 /**
+ * Read defaultView from the workspace pikaso.config.json ('html' when absent
+ * or invalid). Project mode reads <cwd>/pikaso.config.json; global mode reads
+ * ~/.pikaso/pikaso.config.json.
+ * @param {string} configDir  Directory holding pikaso.config.json.
+ * @returns {'html'|'canvas'}
+ */
+function readDefaultView(configDir) {
+  try {
+    const cfg = JSON.parse(readFileSync(join(configDir, 'pikaso.config.json'), 'utf8'));
+    return cfg.defaultView === 'canvas' ? 'canvas' : 'html';
+  } catch {
+    return 'html';
+  }
+}
+
+/**
  * @param {import('node:http').IncomingMessage} req
  * @param {import('node:http').ServerResponse} res
  * @param {string} root  Board root directory.
  * @param {Function} apiHandler  Handler from api.js for mutation routes.
+ * @param {string} configDir  Directory holding pikaso.config.json.
  */
-function handleRequest(req, res, root, apiHandler) {
+function handleRequest(req, res, root, apiHandler, configDir) {
   const url = new URL(req.url, 'http://localhost');
   const pathname = url.pathname;
 
@@ -108,6 +125,13 @@ function handleRequest(req, res, root, apiHandler) {
     res.write(': connected\n\n');
     sseClients.add(res);
     req.on('close', () => sseClients.delete(res));
+    return;
+  }
+
+  // API: config — install-time choices (defaultView: 'html' | 'canvas')
+  if (req.method === 'GET' && pathname === '/api/config') {
+    res.writeHead(200, { 'Content-Type': MIME['.json'] });
+    res.end(JSON.stringify({ defaultView: readDefaultView(configDir) }));
     return;
   }
 
@@ -261,6 +285,9 @@ function watchFrames(root) {
  */
 export async function startServer(opts = {}) {
   const root = opts.root ?? resolveBoardRoot(opts);
+  const configDir = opts.global
+    ? join(homedir(), '.pikaso')
+    : (opts.cwd ?? process.cwd());
 
   // Lazy-load API handler to allow server to work without full board init
   let apiHandler = null;
@@ -272,7 +299,7 @@ export async function startServer(opts = {}) {
   }
 
   const server = createServer((req, res) => {
-    handleRequest(req, res, root, apiHandler);
+    handleRequest(req, res, root, apiHandler, configDir);
   });
 
   const port = opts.port ?? 7625;

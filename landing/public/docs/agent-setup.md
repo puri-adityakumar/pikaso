@@ -15,7 +15,7 @@ This copies into your workspace:
 | `pikaso.skill/` | The **Art Director** orchestration skill (design generation) |
 | `rules/builder-rules.md` | HTML-building rules for Builder agents |
 | `rules/critic-rubric.md` | Review rubric for Critic agents |
-| `pikaso.config.json` | Editable config: board root, port, agent command |
+| `pikaso.config.json` | Editable config: board root, port, default view, agent command |
 
 Use `init --global` to install into your home config instead of the project.
 
@@ -40,9 +40,16 @@ You only ever talk to the Art Director.
 {
   "agentCommand": "bob --non-interactive",
   "boardRoot": ".pikaso",
-  "defaultPort": 7625
+  "defaultPort": 7625,
+  "defaultView": "html"
 }
 ```
+
+`defaultView` is chosen during `pikaso init` ("HTML, recommended" is the
+default; pass `--view canvas` to flip it) and decides which view the board
+opens in: `html` (index page + screens, like a browsable site) or `canvas`
+(the infinite pan/zoom board). The Canvas/HTML toggle in the board still
+switches anytime per device.
 
 `agentCommand` is optional — set it if you want the board to be able to spawn
 your agent (e.g. from a "generate mockup" button). Without it, everything

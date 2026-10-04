@@ -261,6 +261,59 @@ test('GET /site/unknown.html returns 404', async () => {
   }
 });
 
+// ---------------------------------------------------------------------------
+// /api/config — install-time default view
+// ---------------------------------------------------------------------------
+
+test('GET /api/config defaults to html when no config exists', async () => {
+  const root = tmpRoot();
+  let server;
+  try {
+    ({ server } = await startServer({ port: 0, root, cwd: root }));
+    const { port } = server.address();
+    const res = await get(port, '/api/config');
+    assert.equal(res.status, 200);
+    assert.ok(res.headers.get('content-type')?.includes('json'));
+    const data = await res.json();
+    assert.equal(data.defaultView, 'html');
+  } finally {
+    server?.close();
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test('GET /api/config reads defaultView from pikaso.config.json', async () => {
+  const root = tmpRoot();
+  let server;
+  try {
+    writeFileSync(join(root, 'pikaso.config.json'), JSON.stringify({ defaultView: 'canvas' }), 'utf8');
+    ({ server } = await startServer({ port: 0, root, cwd: root }));
+    const { port } = server.address();
+    const res = await get(port, '/api/config');
+    const data = await res.json();
+    assert.equal(data.defaultView, 'canvas');
+  } finally {
+    server?.close();
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test('GET /api/config falls back to html on an invalid value', async () => {
+  const root = tmpRoot();
+  let server;
+  try {
+    writeFileSync(join(root, 'pikaso.config.json'), JSON.stringify({ defaultView: 'matrix' }), 'utf8');
+    ({ server } = await startServer({ port: 0, root, cwd: root }));
+    const { port } = server.address();
+    const res = await get(port, '/api/config');
+    const data = await res.json();
+    assert.equal(data.defaultView, 'html');
+  } finally {
+    server?.close();
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
 test('GET /api/project returns project JSON', async () => {
   const root = tmpRoot();
   let server;

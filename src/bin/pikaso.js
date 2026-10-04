@@ -4,7 +4,7 @@
  *
  * Usage:
  *   pikaso [--port <n>] [--global] [--tmp]   Start the board server
- *   pikaso init [--global]                   Copy integration files into workspace
+ *   pikaso init [--global] [--view html|canvas]   Copy integration files, choose default view
  *   pikaso --help                            Show this message
  *   pikaso --version                         Print version
  */
@@ -21,7 +21,8 @@ pikaso v${pkg.version} — agent-driven mockup board
 
 Usage:
   pikaso [options]              Start the board server
-  pikaso init [--global]        Copy integration files into workspace
+  pikaso init [--global] [--view html|canvas]
+                                Copy integration files and choose the default view
 
 Options:
   --port <n>    Port to listen on (default: 7625)
@@ -53,7 +54,9 @@ if (args.includes('--version') || args.includes('-v')) {
 if (args[0] === 'init') {
   const { init } = await import('../init.js');
   const isGlobal = args.includes('--global');
-  await init({ global: isGlobal });
+  const viewArg = args.indexOf('--view');
+  const view = viewArg !== -1 ? args[viewArg + 1] : undefined;
+  await init({ global: isGlobal, view });
   process.exit(0);
 }
 

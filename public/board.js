@@ -454,13 +454,17 @@ modalCopyBtn.addEventListener('click', async () => {
 /**
  * Switch between canvas view and HTML (site) view.
  * @param {'canvas'|'html'} mode
+ * @param {{ persist?: boolean }} [opts]  persist=false when applying the
+ *   configured default so it doesn't become a sticky per-browser choice.
  */
-function setMode(mode) {
+function setMode(mode, { persist = true } = {}) {
   document.body.dataset.mode = mode;
   const html = mode === 'html';
   modeCanvasBtn.classList.toggle('active', !html);
   modeHtmlBtn.classList.toggle('active', html);
-  try { localStorage.setItem(MODE_KEY, mode); } catch { /* private mode */ }
+  if (persist) {
+    try { localStorage.setItem(MODE_KEY, mode); } catch { /* private mode */ }
+  }
 
   if (html && (siteFrame.src === 'about:blank' || siteFrame.getAttribute('src') === 'about:blank')) {
     siteFrame.src = '/site/index.html';
@@ -542,10 +546,16 @@ async function init() {
     console.warn('[pikaso] Could not load project:', err.message);
   }
 
-  // Restore last view mode (canvas is the default)
-  let savedMode = 'canvas';
-  try { savedMode = localStorage.getItem(MODE_KEY) === 'html' ? 'html' : 'canvas'; } catch { /* private mode */ }
-  setMode(savedMode);
+  // Startup view: an explicit toggle on this device wins; otherwise the
+  // install-time choice from pikaso.config.json (default: html)
+  let startMode = null;
+  try { startMode = localStorage.getItem(MODE_KEY); } catch { /* private mode */ }
+  if (startMode !== 'html' && startMode !== 'canvas') {
+    startMode = await apiFetch('/api/config')
+      .then(c => (c && c.defaultView === 'canvas' ? 'canvas' : 'html'))
+      .catch(() => 'html');
+  }
+  setMode(startMode, { persist: false });
 
   connectSSE();
 }
