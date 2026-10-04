@@ -26,6 +26,7 @@
   // Styles
   // -------------------------------------------------------------------------
   const style = document.createElement('style');
+  style.id = 'pikaso-annotate-style';
   style.textContent = `
     .pikaso-hover-outline {
       outline: 2px dashed #3fbf57 !important;
@@ -210,6 +211,25 @@
       pointer-events: none;
     }
     #pikaso-freehand-canvas.drawing { pointer-events: auto; cursor: crosshair; }
+
+    /* Toast (screenshot feedback) */
+    .pikaso-toast {
+      position: fixed;
+      bottom: 64px; left: 50%;
+      transform: translateX(-50%);
+      z-index: 2147483647;
+      font: 600 12.5px/1 "Manrope", -apple-system, system-ui, sans-serif;
+      color: #f4f2ea;
+      background: #1d1c19;
+      border: 1px solid rgba(244,242,234,0.2);
+      border-radius: 999px;
+      padding: 10px 18px;
+      box-shadow: 0 10px 26px rgba(43,42,38,0.35);
+      opacity: 0;
+      transition: opacity 0.2s ease;
+      pointer-events: none;
+    }
+    .pikaso-toast.show { opacity: 1; }
   `;
   document.head.appendChild(style);
 
@@ -550,6 +570,22 @@
   window.addEventListener('resize', sizeFreehandCanvas);
 
   let currentStroke = null;
+  let selectionRect = null;
+
+  function drawSelectionOverlay() {
+    // redraw persisted strokes, then the in-progress selection rectangle
+    drawFreehand(lastAnnotations);
+    if (selectionRect) {
+      fctx.save();
+      fctx.strokeStyle = '#2f6df6';
+      fctx.lineWidth = 2;
+      fctx.setLineDash([6, 4]);
+      fctx.strokeRect(selectionRect.x, selectionRect.y, selectionRect.w, selectionRect.h);
+      fctx.fillStyle = 'rgba(47, 109, 246, 0.08)';
+      fctx.fillRect(selectionRect.x, selectionRect.y, selectionRect.w, selectionRect.h);
+      fctx.restore();
+    }
+  }
 
   function drawStroke(points, color) {
     if (points.length < 2) return;
@@ -577,44 +613,165 @@
   }
 
   freehandCanvas.addEventListener('pointerdown', (e) => {
-    if (!armed || tool !== 'pen') return;
+    if (!armed || (tool !== 'pen' && tool !== 'shot')) return;
     e.preventDefault();
-    currentStroke = [[e.clientX, e.clientY]];
+    if (tool === 'pen') {
+      currentStroke = [[e.clientX, e.clientY]];
+    } else {
+      selectionRect = { x: e.clientX, y: e.clientY, w: 0, h: 0 };
+      selStart = [e.clientX, e.clientY];
+    }
     freehandCanvas.setPointerCapture(e.pointerId);
   });
   freehandCanvas.addEventListener('pointermove', (e) => {
-    if (!currentStroke) return;
-    currentStroke.push([e.clientX, e.clientY]);
-    // redraw persisted + current partial stroke
-    drawFreehand(lastAnnotations);
-    drawStroke(currentStroke, '#f0883e');
+    if (tool === 'pen' && currentStroke) {
+      currentStroke.push([e.clientX, e.clientY]);
+      // redraw persisted + current partial stroke
+      drawFreehand(lastAnnotations);
+      drawStroke(currentStroke, '#f0883e');
+    } else if (tool === 'shot' && selectionRect && selStart) {
+      selectionRect = {
+        x: Math.min(selStart[0], e.clientX),
+        y: Math.min(selStart[1], e.clientY),
+        w: Math.abs(e.clientX - selStart[0]),
+        h: Math.abs(e.clientY - selStart[1]),
+      };
+      drawSelectionOverlay();
+    }
   });
-  freehandCanvas.addEventListener('pointerup', async () => {
-    if (!currentStroke) return;
-    const points = currentStroke;
-    currentStroke = null;
-    if (points.length < 2) { drawFreehand(lastAnnotations); return; }
-    const xs = points.map(pt => pt[0]);
-    const ys = points.map(pt => pt[1]);
-    try {
-      const res = await fetch(`/api/annotations/${encodeURIComponent(FRAME_NAME)}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          type: 'freehand',
-          points,
-          color: '#f0883e',
-          viewport: { w: window.innerWidth, h: window.innerHeight },
-          text: 'Freehand annotation',
-        }),
-      });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      await loadPins();
-    } catch (err) {
-      alert(`Failed to save freehand stroke: ${err.message}`);
+  freehandCanvas.addEventListener('pointerup', async (e) => {
+    if (tool === 'pen' && currentStroke) {
+      const points = currentStroke;
+      currentStroke = null;
+      if (points.length < 2) { drawFreehand(lastAnnotations); return; }
+      try {
+        const res = await fetch(`/api/annotations/${encodeURIComponent(FRAME_NAME)}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            type: 'freehand',
+            points,
+            color: '#f0883e',
+            viewport: { w: window.innerWidth, h: window.innerHeight },
+            text: 'Freehand annotation',
+          }),
+        });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        await loadPins();
+      } catch (err) {
+        alert(`Failed to save freehand stroke: ${err.message}`);
+        drawFreehand(lastAnnotations);
+      }
+      return;
+    }
+    if (tool === 'shot' && selectionRect) {
+      const rect = selectionRect;
+      selectionRect = null;
+      selStart = null;
+      if (rect.w < 10 || rect.h < 10) { drawSelectionOverlay(); return; } // too small — ignore
+      drawSelectionOverlay();
+      await copyScreenshot(rect);
       drawFreehand(lastAnnotations);
     }
   });
+
+  // -------------------------------------------------------------------------
+  // Screenshot to clipboard — rasterize this page via foreignObject, crop the
+  // selected region, stamp the freehand strokes on top, copy as image/png.
+  // -------------------------------------------------------------------------
+
+  let selStart = null;
+
+  async function captureRegionImage(rect) {
+    const w = window.innerWidth;
+    const h = window.innerHeight;
+    const doc = document.documentElement.cloneNode(true);
+    // strip our own UI so only the mockup is captured
+    doc.querySelectorAll(
+      '#pikaso-overlay, #pikaso-pins-layer, #pikaso-freehand-canvas, ' +
+      '.pikaso-annotate-fab, .pikaso-annotate-toolbar, .pikaso-comment-box, ' +
+      '.pikaso-toast, #pikaso-annotate-style'
+    ).forEach(n => n.remove());
+    // XMLSerializer yields well-formed XML (void tags self-closed) — plain
+    // outerHTML breaks the SVG parser on <input>/<meta>/<br>
+    const html = new XMLSerializer().serializeToString(doc);
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}">` +
+      `<foreignObject width="100%" height="100%">${html}</foreignObject></svg>`;
+
+    const page = new Image();
+    await new Promise((resolve, reject) => {
+      page.onload = resolve;
+      page.onerror = () => reject(new Error('could not rasterize the page'));
+      page.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
+    });
+
+    const pageCanvas = document.createElement('canvas');
+    pageCanvas.width = w;
+    pageCanvas.height = h;
+    const ctx = pageCanvas.getContext('2d');
+    ctx.drawImage(page, 0, 0, w, h);
+
+    const out = document.createElement('canvas');
+    out.width = Math.round(rect.w);
+    out.height = Math.round(rect.h);
+    const octx = out.getContext('2d');
+    octx.drawImage(pageCanvas, rect.x, rect.y, rect.w, rect.h, 0, 0, out.width, out.height);
+    // stamp the freehand strokes that fall inside the region
+    octx.drawImage(freehandCanvas, rect.x, rect.y, rect.w, rect.h, 0, 0, out.width, out.height);
+
+    return new Promise((resolve, reject) => {
+      out.toBlob(blob => (blob ? resolve(blob) : reject(new Error('toBlob failed'))), 'image/png');
+    });
+  }
+
+  async function copyScreenshot(rect) {
+    let blob;
+    try {
+      blob = await captureRegionImage(rect);
+    } catch (err) {
+      pikasoToast(`Screenshot failed: ${err.message}`);
+      return;
+    }
+
+    // 1) async clipboard (needs document focus — a real drag provides it)
+    try {
+      window.focus();
+      await navigator.clipboard.write([new ClipboardItem({ 'image/png': Promise.resolve(blob) })]);
+      pikasoToast(`Screenshot copied ✓ (${Math.round(rect.w)}×${Math.round(rect.h)})`);
+      return;
+    } catch { /* fall through */ }
+
+    // 2) legacy execCommand copy via a temporarily selected image
+    try {
+      const img = document.createElement('img');
+      img.src = URL.createObjectURL(blob);
+      img.style.cssText = 'position:fixed;left:-9999px;top:0;';
+      document.body.appendChild(img);
+      const range = document.createRange();
+      range.selectNode(img);
+      const sel = window.getSelection();
+      sel.removeAllRanges();
+      sel.addRange(range);
+      const ok = document.execCommand('copy');
+      sel.removeAllRanges();
+      img.remove();
+      if (ok) {
+        pikasoToast(`Screenshot copied ✓ (${Math.round(rect.w)}×${Math.round(rect.h)})`);
+        return;
+      }
+      throw new Error('execCommand copy blocked');
+    } catch { /* fall through */ }
+
+    // 3) last resort — download the PNG so the shot is never lost
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'pikaso-shot.png';
+    a.click();
+    pikasoToast('Clipboard blocked — screenshot downloaded instead');
+  }
+
+  // debug/test hook (harmless): direct access to the region rasterizer
+  window.__pikasoCaptureRegion = captureRegionImage;
 
   // -------------------------------------------------------------------------
   // Annotate button + toolbar (floating) — the way to ARM annotation mode.
@@ -636,23 +793,47 @@
   penChip.className = 'pikaso-tool-chip';
   penChip.type = 'button';
   penChip.textContent = '✏️ Pen';
+  const shotChip = document.createElement('button');
+  shotChip.className = 'pikaso-tool-chip';
+  shotChip.type = 'button';
+  shotChip.textContent = '📷 Shot';
   const doneChip = document.createElement('button');
   doneChip.className = 'pikaso-tool-chip';
   doneChip.type = 'button';
   doneChip.textContent = 'Done';
   toolbar.appendChild(pinChip);
   toolbar.appendChild(penChip);
+  toolbar.appendChild(shotChip);
   toolbar.appendChild(doneChip);
 
   document.body.appendChild(fab);
   document.body.appendChild(toolbar);
 
+  // Toast helper
+  let toastEl2 = null;
+  let toastTimer = null;
+  function pikasoToast(text) {
+    toastEl2?.remove();
+    clearTimeout(toastTimer);
+    toastEl2 = document.createElement('div');
+    toastEl2.className = 'pikaso-toast';
+    toastEl2.textContent = text;
+    document.body.appendChild(toastEl2);
+    requestAnimationFrame(() => toastEl2.classList.add('show'));
+    toastTimer = setTimeout(() => {
+      toastEl2.classList.remove('show');
+      toastTimer = setTimeout(() => { toastEl2?.remove(); toastEl2 = null; }, 300);
+    }, 1800);
+  }
+
   function setTool(next) {
     tool = next;
     pinChip.classList.toggle('on', tool === 'pin');
     penChip.classList.toggle('on', tool === 'pen');
+    shotChip.classList.toggle('on', tool === 'shot');
     disableHover();
-    freehandCanvas.classList.toggle('drawing', armed && tool === 'pen');
+    freehandCanvas.classList.toggle('drawing', armed && (tool === 'pen' || tool === 'shot'));
+    if (tool !== 'shot') selectionRect = null;
   }
 
   function setArmed(next) {
@@ -663,6 +844,7 @@
     if (!armed) {
       disableHover();
       setTool('pin');
+      selectionRect = null;
       drawFreehand(lastAnnotations); // drop the in-progress stroke
     } else {
       enableHover();
@@ -672,6 +854,7 @@
   fab.addEventListener('click', () => setArmed(!armed));
   pinChip.addEventListener('click', () => setTool('pin'));
   penChip.addEventListener('click', () => setTool('pen'));
+  shotChip.addEventListener('click', () => setTool('shot'));
   doneChip.addEventListener('click', () => setArmed(false));
 
   // Board → frame remote control (top-bar Annotate button)
