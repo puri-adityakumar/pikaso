@@ -46,10 +46,11 @@ You only ever talk to the Art Director.
 ```
 
 `defaultView` is chosen during `pikaso init` ("HTML, recommended" is the
-default; pass `--view canvas` to flip it) and decides which view the board
-opens in: `html` (index page + screens, like a browsable site) or `canvas`
-(the infinite pan/zoom board). The Canvas/HTML toggle in the board still
-switches anytime per device.
+default; pass `--view canvas` to flip it) and decides what the board **is**:
+`html` (index page + screens, like a browsable site) or `canvas` (the infinite
+pan/zoom board). There is no runtime toggle by design — canvas frames link to
+their `/site/` pages and site pages link back to the board. To change the
+default, edit `pikaso.config.json` or re-run `pikaso init`.
 
 `agentCommand` is optional — set it if you want the board to be able to spawn
 your agent (e.g. from a "generate mockup" button). Without it, everything

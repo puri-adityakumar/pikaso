@@ -125,6 +125,8 @@ Lock modal (harness adapter entry point):
 
 - **D26 — Plain JavaScript (ESM) for the package; JSX for landing.** `"type": "module"`, no build step at all (the tsc variant was rejected on deadline economics: ~600–900 lines, one builder, zero compile step between agent edit and running server). JSDoc on public seams (board/annotation schemas, API handlers) as agent-friendly type hints. Landing page uses the Vite React-JS template. Post-hackathon JS→TS migration is cheap on a codebase this size if needed.
 
+- **D27 — Canvas and HTML are separate surfaces; the install chooses, links cross.** The board view (`defaultView` in `pikaso.config.json`, `html` default, chosen at `pikaso init`) is the workspace's identity — `/` renders exactly that view, deterministically. There is NO runtime mode toggle: a per-browser localStorage setting overriding the install-time answer made the config a suggestion (audited 2026-10-05, agent debate on both sides). Crossing between surfaces happens at the point of intent via links — canvas frame labels and the top bar link to `/site/<name>.html` / `/site/index.html`; site pages link back to the board via the brand. Changing the default = edit the config or re-run `pikaso init` (merges). `GET /api/config` is the single source the board reads at boot.
+
 ## Open (not yet decided)
 
 - Server/runtime stack (Node + tiny static server + ws is the working assumption; nothing chosen).

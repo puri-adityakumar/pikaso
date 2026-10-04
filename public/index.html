@@ -124,30 +124,19 @@
     }
     #theme-toggle:hover { transform: translateY(-1px); background: var(--field); }
 
-    /* mode switch — Canvas | HTML segmented control */
-    #mode-switch {
-      display: flex;
-      background: var(--field);
-      border: 1px solid var(--edge);
-      border-radius: 8px;
-      padding: 2px;
-      gap: 2px;
-    }
-    .mode-btn {
+    /* crossing link — canvas users jump to the site index (D27: links, not a switch) */
+    #pages-link {
       font: 700 12px/1 var(--sans);
-      border: none;
-      background: none;
       color: var(--muted);
-      border-radius: 6px;
-      padding: 6px 12px;
-      cursor: pointer;
-      transition: background 0.15s ease, color 0.15s ease, box-shadow 0.15s var(--ease);
+      text-decoration: none;
+      border: 1px solid transparent;
+      border-radius: 7px;
+      padding: 7px 10px;
+      transition: color 0.15s ease, border-color 0.15s ease;
+      white-space: nowrap;
     }
-    .mode-btn.active {
-      background: var(--card);
-      color: var(--ink);
-      box-shadow: 0 1px 4px rgba(43, 42, 38, 0.14);
-    }
+    #pages-link:hover { color: var(--ink); border-color: var(--edge); }
+    body[data-mode="html"] #pages-link { display: none; }
 
     /* ── HTML mode — index page → clean full-size mockup pages ───────── */
     #site-view {
@@ -303,6 +292,14 @@
       background: var(--green-soft);
       color: var(--ink);
     }
+    .frame-label .frame-open {
+      pointer-events: auto;
+      font: 600 10.5px/1 var(--mono);
+      color: var(--muted);
+      text-decoration: none;
+      transition: color 0.15s ease;
+    }
+    .frame-label .frame-open:hover { color: var(--ink); text-decoration: underline; }
     .frame-label .ann-count {
       font-weight: 800;
       color: var(--ink);
@@ -471,10 +468,7 @@
     <span class="board-name" id="board-name">board</span>
     <span class="spacer"></span>
     <span id="bob-status">Bob: idle</span>
-    <div id="mode-switch" role="group" aria-label="View mode">
-      <button id="mode-canvas" class="mode-btn active" type="button">Canvas</button>
-      <button id="mode-html" class="mode-btn" type="button">HTML</button>
-    </div>
+    <a id="pages-link" href="/site/index.html" title="Read the mockups as pages">pages ↗</a>
     <button id="theme-toggle" type="button" title="Toggle light / dark" aria-label="Toggle theme">☾</button>
     <div id="new-frame-strip">
       <input id="new-frame-input" type="text" placeholder="Describe the screen…" autocomplete="off">

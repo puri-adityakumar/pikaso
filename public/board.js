@@ -52,15 +52,12 @@ const modalCopyBtn  = /** @type {HTMLButtonElement} */ (document.getElementById(
 const modalCancelBtn = /** @type {HTMLButtonElement} */ (document.getElementById('modal-cancel-btn'));
 const toastEl       = /** @type {HTMLDivElement}    */ (document.getElementById('toast'));
 
-// HTML mode (index page → clean mockup pages)
-const modeCanvasBtn = /** @type {HTMLButtonElement} */ (document.getElementById('mode-canvas'));
-const modeHtmlBtn   = /** @type {HTMLButtonElement} */ (document.getElementById('mode-html'));
+// HTML view (site pane) + crossing links
 const siteView      = /** @type {HTMLDivElement}    */ (document.getElementById('site-view'));
 const siteFrame     = /** @type {HTMLIFrameElement} */ (document.getElementById('site-frame'));
 const siteRouteEl   = /** @type {HTMLSpanElement}   */ (document.getElementById('site-route'));
 const siteHomeBtn   = /** @type {HTMLButtonElement} */ (document.getElementById('site-home'));
-
-const MODE_KEY = 'pikaso-mode';
+const pagesLink     = /** @type {HTMLAnchorElement} */ (document.getElementById('pages-link'));
 
 // ---------------------------------------------------------------------------
 // Canvas transform
@@ -228,7 +225,8 @@ function renderLabel(name, status, openCount) {
     `<span class="frame-dot" style="background:${color}"></span>` +
     `<span class="frame-name">${escHtml(name)}</span>` +
     `<span class="${statusCls}">${status}</span>` +
-    `<span class="${annCls}">${annText}</span>`;
+    `<span class="${annCls}">${annText}</span>` +
+    `<a class="frame-open" href="/site/${encodeURIComponent(name)}.html" target="_blank" rel="noreferrer" title="Open as a page">page ↗</a>`;
 }
 
 function escHtml(s) {
@@ -448,25 +446,18 @@ modalCopyBtn.addEventListener('click', async () => {
 });
 
 // ---------------------------------------------------------------------------
-// HTML mode — index page listing frames; opening one shows the mockup clean
+// Board view — canvas or html, decided by the install-time config (D27).
+// No runtime toggle: crossing happens via links (/site/…, frame-label links).
 // ---------------------------------------------------------------------------
 
 /**
- * Switch between canvas view and HTML (site) view.
+ * Apply the configured view.
  * @param {'canvas'|'html'} mode
- * @param {{ persist?: boolean }} [opts]  persist=false when applying the
- *   configured default so it doesn't become a sticky per-browser choice.
  */
-function setMode(mode, { persist = true } = {}) {
+function setMode(mode) {
   document.body.dataset.mode = mode;
-  const html = mode === 'html';
-  modeCanvasBtn.classList.toggle('active', !html);
-  modeHtmlBtn.classList.toggle('active', html);
-  if (persist) {
-    try { localStorage.setItem(MODE_KEY, mode); } catch { /* private mode */ }
-  }
 
-  if (html && (siteFrame.src === 'about:blank' || siteFrame.getAttribute('src') === 'about:blank')) {
+  if (mode === 'html' && (siteFrame.src === 'about:blank' || siteFrame.getAttribute('src') === 'about:blank')) {
     siteFrame.src = '/site/index.html';
   }
 }
@@ -481,9 +472,6 @@ siteFrame.addEventListener('load', () => {
     siteRouteEl.textContent = siteFrame.contentWindow.location.pathname;
   } catch { /* same-origin always, but stay safe */ }
 });
-
-modeCanvasBtn.addEventListener('click', () => setMode('canvas'));
-modeHtmlBtn.addEventListener('click', () => setMode('html'));
 
 // ---------------------------------------------------------------------------
 // SSE live reload
@@ -547,15 +535,11 @@ async function init() {
   }
 
   // Startup view: an explicit toggle on this device wins; otherwise the
-  // install-time choice from pikaso.config.json (default: html)
-  let startMode = null;
-  try { startMode = localStorage.getItem(MODE_KEY); } catch { /* private mode */ }
-  if (startMode !== 'html' && startMode !== 'canvas') {
-    startMode = await apiFetch('/api/config')
-      .then(c => (c && c.defaultView === 'canvas' ? 'canvas' : 'html'))
-      .catch(() => 'html');
-  }
-  setMode(startMode, { persist: false });
+  // The configured view IS the board (D27) — html is the fallback default
+  const startMode = await apiFetch('/api/config')
+    .then(c => (c && c.defaultView === 'canvas' ? 'canvas' : 'html'))
+    .catch(() => 'html');
+  setMode(startMode);
 
   connectSSE();
 }
