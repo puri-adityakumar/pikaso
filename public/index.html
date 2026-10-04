@@ -137,34 +137,16 @@
     #pages-link:hover { color: var(--ink); border-color: var(--edge); }
     body[data-mode="html"] #pages-link { display: none; }
 
-    /* ── HTML mode — index page → clean full-size mockup pages ───────── */
-    #site-view {
-      display: none;
-      position: fixed;
-      top: 52px; left: 0; right: 0; bottom: 0;
-      flex-direction: column;
-    }
-    body[data-mode="html"] #site-view { display: flex; }
-    body[data-mode="html"] #board-root,
-    body[data-mode="html"] #zoom-pill { display: none; }
-    #site-bar {
-      height: 40px;
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      padding: 0 16px;
-      border-bottom: 1px solid var(--hairline);
-      background: color-mix(in srgb, var(--paper) 88%, transparent);
-      backdrop-filter: blur(8px);
-      -webkit-backdrop-filter: blur(8px);
-    }
+    /* site-nav — lives in the main top bar; html view only (D27/D28) */
+    #site-nav { display: none; align-items: center; gap: 10px; }
+    body[data-mode="html"] #site-nav { display: flex; }
     #site-home {
       font: 700 12px/1 var(--sans);
       color: var(--ink);
       background: var(--card);
       border: 1px solid var(--edge);
       border-radius: 7px;
-      padding: 6px 11px;
+      padding: 7px 11px;
       cursor: pointer;
       transition: background 0.15s ease, transform 0.15s var(--ease);
     }
@@ -178,6 +160,17 @@
       border-radius: 7px;
       padding: 6px 11px;
     }
+
+    /* ── HTML mode — index page → clean full-size mockup pages ───────── */
+    #site-view {
+      display: none;
+      position: fixed;
+      top: 52px; left: 0; right: 0; bottom: 0;
+      flex-direction: column;
+    }
+    body[data-mode="html"] #site-view { display: flex; }
+    body[data-mode="html"] #board-root,
+    body[data-mode="html"] #zoom-pill { display: none; }
     #site-frame {
       flex: 1;
       width: 100%;
@@ -426,6 +419,10 @@
     <span class="brand">pikaso</span>
     <span class="sep">›</span>
     <span class="board-name" id="board-name">board</span>
+    <span id="site-nav">
+      <button id="site-home" type="button">‹ index</button>
+      <span id="site-route">/site/index.html</span>
+    </span>
     <span class="spacer"></span>
     <span id="bob-status">Bob: idle</span>
     <button id="lock-btn" type="button">Lock draft › implement</button>
@@ -440,10 +437,6 @@
 
   <!-- HTML mode: index page listing frames → open a mockup clean, full-size -->
   <div id="site-view">
-    <div id="site-bar">
-      <button id="site-home" type="button">‹ index</button>
-      <span id="site-route">/site/index.html</span>
-    </div>
     <iframe id="site-frame" src="about:blank" title="Mockup site"></iframe>
   </div>
 
