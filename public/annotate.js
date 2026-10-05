@@ -297,7 +297,7 @@
   // While idle, clicks pass through to the mockup (links work as normal).
   // -------------------------------------------------------------------------
   let armed = false;
-  let tool = 'pin'; // 'pin' | 'pen'
+  let tool = 'pin'; // 'pin' | 'pen' | 'region' | 'shot'
   let hoveredEl = null;
 
   function enableHover() {
@@ -331,11 +331,13 @@
   let commentBox = null;
   let pendingSelector = null;
   let pendingBox = null;
+  let pendingExtra = null;
 
-  function openCommentBox(x, y, selector, box) {
+  function openCommentBox(x, y, selector, box, extra) {
     closeCommentBox();
     pendingSelector = selector;
     pendingBox = box;
+    pendingExtra = extra ?? null;
 
     commentBox = document.createElement('div');
     commentBox.className = 'pikaso-comment-box';
@@ -352,7 +354,7 @@
     commentBox.style.top  = `${Math.max(4, top)}px`;
 
     const textarea = document.createElement('textarea');
-    textarea.placeholder = 'Add a comment…';
+    textarea.placeholder = pendingExtra?.type === 'region' ? 'Comment on this area…' : 'Add a comment…';
     commentBox.appendChild(textarea);
 
     const actions = document.createElement('div');
@@ -385,6 +387,7 @@
     commentBox = null;
     pendingSelector = null;
     pendingBox = null;
+    pendingExtra = null;
   }
 
   async function saveComment(text) {
@@ -396,6 +399,7 @@
       box: pendingBox,
       viewport: { w: window.innerWidth, h: window.innerHeight },
       text,
+      ...(pendingExtra ?? {}),
     };
 
     try {
@@ -570,7 +574,7 @@
       if (!res.ok) return;
       const anns = await res.json();
       lastAnnotations = anns;
-      renderPins(anns.filter(a => (a.type ?? 'pin') === 'pin'));
+      renderPins(anns.filter(a => (a.type ?? 'pin') === 'pin' || a.type === 'region'));
       drawFreehand(anns);
     } catch { /* server may not be running */ }
   }
@@ -607,6 +611,7 @@
   window.addEventListener('resize', sizeFreehandCanvas);
 
   let currentStroke = null;
+  let regionPoints = null;
   let selectionRect = null;
 
   function drawSelectionOverlay() {
@@ -645,15 +650,40 @@
     for (const ann of annotations) {
       if (ann.type === 'freehand' && Array.isArray(ann.points)) {
         drawStroke(ann.points, ann.color || '#f0883e');
+      } else if (ann.type === 'region' && Array.isArray(ann.points) && ann.points.length > 2) {
+        fctx.save();
+        fctx.beginPath();
+        fctx.moveTo(ann.points[0][0], ann.points[0][1]);
+        for (let i = 1; i < ann.points.length; i++) fctx.lineTo(ann.points[i][0], ann.points[i][1]);
+        fctx.closePath();
+        fctx.fillStyle = ann.status === 'resolved' ? 'rgba(132,131,123,0.12)' : 'rgba(98,217,107,0.16)';
+        fctx.fill();
+        fctx.strokeStyle = ann.status === 'resolved' ? '#84837b' : (ann.color || '#62d96b');
+        fctx.lineWidth = 2;
+        fctx.stroke();
+        fctx.restore();
       }
+    }
+    if (regionPoints && regionPoints.length > 1) {
+      fctx.save();
+      fctx.beginPath();
+      fctx.moveTo(regionPoints[0][0], regionPoints[0][1]);
+      for (let i = 1; i < regionPoints.length; i++) fctx.lineTo(regionPoints[i][0], regionPoints[i][1]);
+      fctx.strokeStyle = '#62d96b';
+      fctx.lineWidth = 2;
+      fctx.setLineDash([5, 4]);
+      fctx.stroke();
+      fctx.restore();
     }
   }
 
   freehandCanvas.addEventListener('pointerdown', (e) => {
-    if (!armed || (tool !== 'pen' && tool !== 'shot')) return;
+    if (!armed || (tool !== 'pen' && tool !== 'shot' && tool !== 'region')) return;
     e.preventDefault();
     if (tool === 'pen') {
       currentStroke = [[e.clientX, e.clientY]];
+    } else if (tool === 'region') {
+      regionPoints = [[e.clientX, e.clientY]];
     } else {
       selectionRect = { x: e.clientX, y: e.clientY, w: 0, h: 0 };
       selStart = [e.clientX, e.clientY];
@@ -666,6 +696,9 @@
       // redraw persisted + current partial stroke
       drawFreehand(lastAnnotations);
       drawStroke(currentStroke, '#f0883e');
+    } else if (tool === 'region' && regionPoints) {
+      regionPoints.push([e.clientX, e.clientY]);
+      drawFreehand(lastAnnotations);
     } else if (tool === 'shot' && selectionRect && selStart) {
       selectionRect = {
         x: Math.min(selStart[0], e.clientX),
@@ -677,6 +710,17 @@
     }
   });
   freehandCanvas.addEventListener('pointerup', async (e) => {
+    if (tool === 'region' && regionPoints) {
+      const points = regionPoints;
+      regionPoints = null;
+      drawFreehand(lastAnnotations);
+      if (points.length < 3) return; // too small to be a region
+      const xs = points.map(pt => pt[0]);
+      const ys = points.map(pt => pt[1]);
+      const box = { x: Math.min(...xs), y: Math.min(...ys), w: Math.max(...xs) - Math.min(...xs), h: Math.max(...ys) - Math.min(...ys) };
+      openCommentBox(box.x + box.w / 2, box.y + box.h / 2, null, box, { type: 'region', points });
+      return;
+    }
     if (tool === 'pen' && currentStroke) {
       const points = currentStroke;
       currentStroke = null;
@@ -830,6 +874,10 @@
   penChip.className = 'pikaso-tool-chip';
   penChip.type = 'button';
   penChip.textContent = '✏️ Pen';
+  const regionChip = document.createElement('button');
+  regionChip.className = 'pikaso-tool-chip';
+  regionChip.type = 'button';
+  regionChip.textContent = '⬜ Region';
   const shotChip = document.createElement('button');
   shotChip.className = 'pikaso-tool-chip';
   shotChip.type = 'button';
@@ -840,6 +888,7 @@
   doneChip.textContent = 'Done';
   toolbar.appendChild(pinChip);
   toolbar.appendChild(penChip);
+  toolbar.appendChild(regionChip);
   toolbar.appendChild(shotChip);
   toolbar.appendChild(doneChip);
 
@@ -867,10 +916,12 @@
     tool = next;
     pinChip.classList.toggle('on', tool === 'pin');
     penChip.classList.toggle('on', tool === 'pen');
+    regionChip.classList.toggle('on', tool === 'region');
     shotChip.classList.toggle('on', tool === 'shot');
     disableHover();
-    freehandCanvas.classList.toggle('drawing', armed && (tool === 'pen' || tool === 'shot'));
+    freehandCanvas.classList.toggle('drawing', armed && tool !== 'pin');
     if (tool !== 'shot') selectionRect = null;
+    if (tool !== 'region') regionPoints = null;
   }
 
   function setArmed(next) {
@@ -891,13 +942,16 @@
   fab.addEventListener('click', () => setArmed(!armed));
   pinChip.addEventListener('click', () => setTool('pin'));
   penChip.addEventListener('click', () => setTool('pen'));
+  regionChip.addEventListener('click', () => setTool('region'));
   shotChip.addEventListener('click', () => setTool('shot'));
   doneChip.addEventListener('click', () => setArmed(false));
 
-  // Board → frame remote control (top-bar Annotate button)
+  // Board → frame remote control (top-bar Annotate button) + annotation sync
   window.addEventListener('message', (e) => {
     if (e.data && e.data.type === 'pikaso-annotate') {
       setArmed(Boolean(e.data.active));
+    } else if (e.data && e.data.type === 'pikaso-annotations') {
+      loadPins(); // annotations changed elsewhere — refresh pins + strokes
     }
   });
 

@@ -70,7 +70,7 @@ function validateAnnotationBody(body) {
   if (typeof b.text !== 'string' || !b.text.trim()) return null;
   if (!b.viewport || typeof b.viewport.w !== 'number' || typeof b.viewport.h !== 'number') return null;
 
-  if (b.type === 'freehand') {
+  if (b.type === 'freehand' || b.type === 'region') {
     const pts = b.points;
     if (!Array.isArray(pts) || pts.length < 2 ||
         !pts.every(pt => Array.isArray(pt) && pt.length === 2 &&
@@ -82,8 +82,10 @@ function validateAnnotationBody(body) {
       x: Math.min(...xs), y: Math.min(...ys),
       w: Math.max(...xs) - Math.min(...xs), h: Math.max(...ys) - Math.min(...ys),
     };
-    const color = typeof b.color === 'string' && /^#[0-9a-fA-F]{3,8}$/.test(b.color) ? b.color : '#f0883e';
-    return { type: 'freehand', selector: null, points: pts, color, box, viewport: b.viewport, text: b.text.trim() };
+    const color = typeof b.color === 'string' && /^#[0-9a-fA-F]{3,8}$/.test(b.color)
+      ? b.color
+      : (b.type === 'region' ? '#62d96b' : '#f0883e');
+    return { type: b.type, selector: null, points: pts, color, box, viewport: b.viewport, text: b.text.trim() };
   }
 
   if (typeof b.selector !== 'string' || !b.selector.trim()) return null;
@@ -155,7 +157,9 @@ export function handleApiRequest(req, res, root, ctx) {
         id: randomUUID(),
         type: validated.type,
         selector: validated.selector,
-        ...(validated.type === 'freehand' ? { points: validated.points, color: validated.color } : {}),
+        ...(validated.type === 'freehand' || validated.type === 'region'
+          ? { points: validated.points, color: validated.color }
+          : {}),
         box: validated.box,
         viewport: validated.viewport,
         text: validated.text,

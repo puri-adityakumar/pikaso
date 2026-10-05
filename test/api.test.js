@@ -403,3 +403,32 @@ test('DELETE /api/annotations/:frame/:id removes the annotation', async () => {
     rmSync(root, { recursive: true, force: true });
   }
 });
+
+test('POST /api/annotations accepts a region payload', async () => {
+  const root = tmpRoot();
+  let server;
+  try {
+    createFrame(root, 'zoned');
+    ({ server } = await startServer({ port: 0, root }));
+    const { port } = server.address();
+    const res = await fetch(`http://127.0.0.1:${port}/api/annotations/zoned`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        type: 'region',
+        points: [[10, 10], [80, 20], [60, 90]],
+        viewport: { w: 800, h: 600 },
+        text: 'This whole block feels heavy',
+      }),
+    });
+    assert.equal(res.status, 201);
+    const ann = await res.json();
+    assert.equal(ann.type, 'region');
+    assert.equal(ann.color, '#62d96b');
+    assert.equal(ann.selector, null);
+    assert.equal(ann.box.w, 70);
+  } finally {
+    server?.close();
+    rmSync(root, { recursive: true, force: true });
+  }
+});

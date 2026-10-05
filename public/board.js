@@ -381,6 +381,11 @@ async function renderBoard(project) {
       wrapper.appendChild(iframe);
       frameIframes.set(name, iframe);
 
+      // re-assert annotate state when the frame (re)loads mid-session
+      iframe.addEventListener('load', () => {
+        if (annotateArmed) iframe.contentWindow?.postMessage({ type: 'pikaso-annotate', active: true }, '*');
+      });
+
       canvas.appendChild(wrapper);
     } else {
       // Ensure label ref is up to date
@@ -578,6 +583,13 @@ function connectSSE() {
           if (f) renderLabel(frame, f.status, count);
         }).catch(() => {});
       });
+      // keep the in-frame pins/strokes in sync (deletes, remote resolves)
+      const msg = { type: 'pikaso-annotations', frame };
+      if (document.body.dataset.mode === 'html') {
+        siteFrame.contentWindow?.postMessage(msg, '*');
+      } else {
+        for (const f of frameIframes.values()) f.contentWindow?.postMessage(msg, '*');
+      }
     } catch { /* malformed event */ }
   });
 

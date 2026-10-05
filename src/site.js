@@ -121,13 +121,26 @@ function siteHead(title) {
 /** Relay: forward board postMessages (annotate mode) into the mockup iframe */
 function siteRelayScript() {
   return `<script>
-  window.addEventListener('message', function (e) {
-    if (e.data && e.data.type === 'pikaso-annotate') {
+  (function () {
+    var lastMsg = null;
+    function forward() {
+      if (!lastMsg) return;
       document.querySelectorAll('iframe').forEach(function (f) {
-        f.contentWindow.postMessage(e.data, '*');
+        f.contentWindow.postMessage(lastMsg, '*');
       });
     }
-  });
+    window.addEventListener('message', function (e) {
+      if (e.data && e.data.type === 'pikaso-annotate') {
+        lastMsg = e.data;
+        forward();
+        // re-forward when the mockup iframe (re)loads — its annotate.js may
+        // register after the message first arrived
+        document.querySelectorAll('iframe').forEach(function (f) {
+          f.addEventListener('load', forward);
+        });
+      }
+    });
+  })();
   <\/script>`;
 }
 
