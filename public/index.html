@@ -479,6 +479,8 @@
       transition: background 0.15s ease, color 0.15s ease, transform 0.15s var(--ease), box-shadow 0.15s var(--ease);
     }
     #annotate-btn:hover { background: var(--field); transform: translateY(-1px); }
+    #annotate-btn svg { display: block; }
+    #annotate-btn.armed svg { display: none; }
     #annotate-btn.armed {
       background: var(--green);
       color: var(--cta-ink);
@@ -498,7 +500,7 @@
     </span>
     <span class="spacer"></span>
     <span id="bob-status">Bob: idle</span>
-    <button id="annotate-btn" type="button" title="Toggle annotate mode">✎ Annotate</button>
+    <button id="annotate-btn" type="button" title="Toggle annotate mode"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.83 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg> Annotate</button>
     <button id="lock-btn" type="button">Lock draft › implement</button>
     <a id="pages-link" href="/site/index.html" title="Read the mockups as pages">pages ↗</a>
     <button id="theme-toggle" type="button" title="Toggle light / dark" aria-label="Toggle theme">☾</button>

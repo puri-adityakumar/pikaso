@@ -184,6 +184,9 @@
       transition: background 0.15s ease, color 0.15s ease, transform 0.15s ease;
     }
     .pikaso-annotate-fab:hover { transform: translateY(-1px); }
+    .pikaso-annotate-fab svg { display: block; }
+    .pikaso-annotate-fab { display: flex; align-items: center; }
+    .pikaso-annotate-fab span { margin-left: 7px; }
     .pikaso-annotate-fab.armed {
       background: #62d96b;
       color: #1d1c19;
@@ -216,6 +219,11 @@
     }
     .pikaso-tool-chip:hover { color: #f4f2ea; }
     .pikaso-tool-chip.on { background: #f2cf62; color: #1d1c19; }
+    .pikaso-tool-chip svg { display: block; }
+    .pikaso-tool-chip.done { color: #62d96b; }
+    .pikaso-tool-chip.done:hover { color: #8af191; }
+    .pikaso-tool-chip.cancel { color: rgba(244,242,234,0.55); }
+    .pikaso-tool-chip.cancel:hover { color: #ff6b5e; }
 
     /* Freehand drawing canvas */
     #pikaso-freehand-canvas {
@@ -246,6 +254,21 @@
     .pikaso-toast.show { opacity: 1; }
   `;
   document.head.appendChild(style);
+
+  // -------------------------------------------------------------------------
+  // Minimal icons (feather-style, stroke follows currentColor)
+  // -------------------------------------------------------------------------
+  const svg = (inner, vb = '0 0 24 24') =>
+    `<svg width="14" height="14" viewBox="${vb}" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${inner}</svg>`;
+  const ICONS = {
+    pin: svg('<path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>'),
+    pen: svg('<path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>'),
+    region: svg('<path d="M5 3h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z" stroke-dasharray="3 3"/><circle cx="12" cy="12" r="3"/>'),
+    shot: svg('<path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/>'),
+    check: svg('<polyline points="20 6 9 17 4 12"/>'),
+    x: svg('<line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>'),
+    pencil: svg('<path d="M17 3a2.83 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/>'),
+  };
 
   // -------------------------------------------------------------------------
   // Overlay layers
@@ -862,35 +885,46 @@
   const fab = document.createElement('button');
   fab.className = 'pikaso-annotate-fab';
   fab.type = 'button';
-  fab.textContent = '✎ Annotate';
+  fab.innerHTML = ICONS.pencil + '<span>Annotate</span>';
 
   const toolbar = document.createElement('div');
   toolbar.className = 'pikaso-annotate-toolbar';
   const pinChip = document.createElement('button');
   pinChip.className = 'pikaso-tool-chip on';
   pinChip.type = 'button';
-  pinChip.textContent = '📌 Pin';
+  pinChip.title = 'Pin a comment on an element';
+  pinChip.innerHTML = ICONS.pin;
   const penChip = document.createElement('button');
   penChip.className = 'pikaso-tool-chip';
   penChip.type = 'button';
-  penChip.textContent = '✏️ Pen';
+  penChip.title = 'Freehand pen';
+  penChip.innerHTML = ICONS.pen;
   const regionChip = document.createElement('button');
   regionChip.className = 'pikaso-tool-chip';
   regionChip.type = 'button';
-  regionChip.textContent = '⬜ Region';
+  regionChip.title = 'Freeform region + comment';
+  regionChip.innerHTML = ICONS.region;
   const shotChip = document.createElement('button');
   shotChip.className = 'pikaso-tool-chip';
   shotChip.type = 'button';
-  shotChip.textContent = '📷 Shot';
+  shotChip.title = 'Screenshot area to clipboard';
+  shotChip.innerHTML = ICONS.shot;
   const doneChip = document.createElement('button');
   doneChip.className = 'pikaso-tool-chip';
   doneChip.type = 'button';
-  doneChip.textContent = 'Done';
+  doneChip.title = 'Done';
+  doneChip.innerHTML = ICONS.check;
+  const cancelChip = document.createElement('button');
+  cancelChip.className = 'pikaso-tool-chip cancel';
+  cancelChip.type = 'button';
+  cancelChip.title = 'Cancel';
+  cancelChip.innerHTML = ICONS.x;
   toolbar.appendChild(pinChip);
   toolbar.appendChild(penChip);
   toolbar.appendChild(regionChip);
   toolbar.appendChild(shotChip);
   toolbar.appendChild(doneChip);
+  toolbar.appendChild(cancelChip);
 
   document.body.appendChild(fab);
   document.body.appendChild(toolbar);
@@ -927,7 +961,7 @@
   function setArmed(next) {
     armed = next;
     fab.classList.toggle('armed', armed);
-    fab.textContent = armed ? '✎ Annotating' : '✎ Annotate';
+    fab.innerHTML = armed ? ICONS.check + '<span>Annotating</span>' : ICONS.pencil + '<span>Annotate</span>';
     toolbar.classList.toggle('visible', armed);
     if (!armed) {
       disableHover();
@@ -945,6 +979,13 @@
   regionChip.addEventListener('click', () => setTool('region'));
   shotChip.addEventListener('click', () => setTool('shot'));
   doneChip.addEventListener('click', () => setArmed(false));
+  cancelChip.addEventListener('click', () => {
+    currentStroke = null;
+    regionPoints = null;
+    selectionRect = null;
+    drawFreehand(lastAnnotations);
+    setArmed(false);
+  });
 
   // Board → frame remote control (top-bar Annotate button) + annotation sync
   window.addEventListener('message', (e) => {
