@@ -44,12 +44,13 @@ function readBody(req) {
 function sendJson(res, status, data) {
   res.writeHead(status, { 'Content-Type': JSON_CT });
   res.end(JSON.stringify(data));
+  return true; // routes `return send*()` must signal "handled" to the server router
 }
 
-function send400(res, msg) { sendJson(res, 400, { error: msg }); }
-function send404(res, msg) { sendJson(res, 404, { error: msg }); }
-function send409(res, msg) { sendJson(res, 409, { error: msg }); }
-function send500(res, msg) { sendJson(res, 500, { error: msg }); }
+function send400(res, msg) { return sendJson(res, 400, { error: msg }); }
+function send404(res, msg) { return sendJson(res, 404, { error: msg }); }
+function send409(res, msg) { return sendJson(res, 409, { error: msg }); }
+function send500(res, msg) { return sendJson(res, 500, { error: msg }); }
 
 // ---------------------------------------------------------------------------
 // Annotation validation
@@ -248,6 +249,30 @@ export function handleApiRequest(req, res, root, ctx) {
 
       sendJson(res, 200, ann);
     }).catch(err => send400(res, err.message));
+    return true;
+  }
+
+  // DELETE /api/annotations/:frame/:id — remove a pin/freehand entirely
+  const deleteAnn = path.match(/^\/api\/annotations\/([^/]+)\/([^/]+)$/);
+  if (method === 'DELETE' && deleteAnn) {
+    const frameName = decodeURIComponent(deleteAnn[1]);
+    const annId     = decodeURIComponent(deleteAnn[2]);
+
+    let anns;
+    try { anns = loadAnnotations(root, frameName); }
+    catch (err) {
+      return err.message.includes('not found') ? send404(res, err.message) : send500(res, err.message);
+    }
+
+    const idx = anns.findIndex(a => a.id === annId);
+    if (idx === -1) return send404(res, `Annotation "${annId}" not found in frame "${frameName}"`);
+
+    const [removed] = anns.splice(idx, 1);
+    saveAnnotations(root, frameName, anns);
+
+    const openCount = anns.filter(a => a.status === 'open').length;
+    broadcastSSE('annotations', { frame: frameName, open: openCount });
+    sendJson(res, 200, { ok: true, deleted: removed.id });
     return true;
   }
 

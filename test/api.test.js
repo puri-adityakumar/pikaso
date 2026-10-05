@@ -372,3 +372,34 @@ test('GET versions + POST revert roundtrip via API', async () => {
     rmSync(root, { recursive: true, force: true });
   }
 });
+
+test('DELETE /api/annotations/:frame/:id removes the annotation', async () => {
+  const root = tmpRoot();
+  let server;
+  try {
+    createFrame(root, 'doomed');
+    ({ server } = await startServer({ port: 0, root }));
+    const { port } = server.address();
+
+    const created = await (await fetch(`http://127.0.0.1:${port}/api/annotations/doomed`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(VALID_ANN),
+    })).json();
+
+    const del = await fetch(`http://127.0.0.1:${port}/api/annotations/doomed/${created.id}`, { method: 'DELETE' });
+    assert.equal(del.status, 200);
+    const body = await del.json();
+    assert.equal(body.ok, true);
+    assert.equal(body.deleted, created.id);
+
+    const stored = JSON.parse(readFileSync(join(root, 'frames', 'doomed', 'annotations.json'), 'utf8'));
+    assert.equal(stored.length, 0, 'annotation removed from disk');
+
+    const repeat = await fetch(`http://127.0.0.1:${port}/api/annotations/doomed/${created.id}`, { method: 'DELETE' });
+    assert.equal(repeat.status, 404, 'second delete is a 404');
+  } finally {
+    server?.close();
+    rmSync(root, { recursive: true, force: true });
+  }
+});

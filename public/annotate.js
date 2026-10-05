@@ -138,6 +138,20 @@
     }
     .pikaso-resolve-btn:hover { color: #62d96b; border-color: #62d96b; }
 
+    /* Delete button inside tooltip */
+    .pikaso-delete-btn {
+      font: 700 11px/1 "Manrope", -apple-system, system-ui, sans-serif;
+      background: none;
+      border: 1px solid rgba(244, 242, 234, 0.24);
+      border-radius: 6px;
+      color: rgba(244, 242, 234, 0.7);
+      padding: 4px 9px;
+      cursor: pointer;
+      margin-top: 6px;
+      pointer-events: auto;
+    }
+    .pikaso-delete-btn:hover { color: #ff6b5e; border-color: #ff6b5e; }
+
     /* Hover target layer */
     #pikaso-overlay {
       position: fixed;
@@ -505,6 +519,29 @@
       });
       tt.appendChild(resolveBtn);
     }
+
+    // Delete — removes the annotation entirely
+    const deleteBtn = document.createElement('button');
+    deleteBtn.className = 'pikaso-delete-btn';
+    deleteBtn.textContent = 'Delete';
+    deleteBtn.title = 'Delete this annotation';
+    deleteBtn.style.display = 'block';
+    deleteBtn.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      try {
+        const res = await fetch(
+          `/api/annotations/${encodeURIComponent(FRAME_NAME)}/${encodeURIComponent(ann.id)}`,
+          { method: 'DELETE' }
+        );
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        currentTooltip?.remove();
+        currentTooltip = null;
+        await loadPins();
+      } catch (err) {
+        alert(`Failed to delete: ${err.message}`);
+      }
+    });
+    tt.appendChild(deleteBtn);
 
     pinsLayer.appendChild(tt);
     currentTooltip = tt;
