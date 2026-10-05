@@ -11,6 +11,9 @@ import {
   updateFrame,
   loadAnnotations,
   saveAnnotations,
+  snapshotVersion,
+  listVersions,
+  revertFrame,
 } from '../src/board.js';
 
 // ---------------------------------------------------------------------------
@@ -203,6 +206,73 @@ test('saveAnnotations + loadAnnotations roundtrip', () => {
     saveAnnotations(root, 'hero', [ann]);
     const loaded = loadAnnotations(root, 'hero');
     assert.deepEqual(loaded, [ann]);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+// ---------------------------------------------------------------------------
+// Version history (snapshot / list / revert)
+// ---------------------------------------------------------------------------
+
+test('snapshotVersion writes v1 then v2, no-op on identical content', () => {
+  const root = tmpRoot();
+  try {
+    createFrame(root, 'landing');
+
+    const first = snapshotVersion(root, 'landing', '<h1>v1</h1>');
+    assert.deepEqual(first, { version: 1 });
+    const same = snapshotVersion(root, 'landing', '<h1>v1</h1>');
+    assert.equal(same, null, 'identical content is a no-op');
+    const second = snapshotVersion(root, 'landing', '<h1>v2</h1>');
+    assert.deepEqual(second, { version: 2 });
+
+    const versions = listVersions(root, 'landing');
+    assert.equal(versions.length, 2);
+    assert.equal(versions[0].version, 1);
+    assert.equal(versions[1].version, 2);
+    assert.ok(versions[1].mtime);
+    assert.ok(versions[1].bytes > 0);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test('listVersions returns empty for a frame without history', () => {
+  const root = tmpRoot();
+  try {
+    createFrame(root, 'fresh');
+    assert.deepEqual(listVersions(root, 'fresh'), []);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test('listVersions throws for unknown frame', () => {
+  const root = tmpRoot();
+  try {
+    assert.throws(() => listVersions(root, 'nope'), /not found/);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test('revertFrame restores version content to mockup.html', () => {
+  const root = tmpRoot();
+  try {
+    createFrame(root, 'landing');
+    snapshotVersion(root, 'landing', '<h1>v1</h1>');
+    snapshotVersion(root, 'landing', '<h1>v2</h1>');
+
+    revertFrame(root, 'landing', 1);
+    assert.equal(readFileSync(join(root, 'frames', 'landing', 'mockup.html'), 'utf8'), '<h1>v1</h1>');
+
+    // reverting is itself a change → becomes the next version (linear history)
+    const versions = listVersions(root, 'landing');
+    assert.equal(versions.length, 3);
+    assert.equal(versions[2].version, 3);
+
+    assert.throws(() => revertFrame(root, 'landing', 99), /not found/);
   } finally {
     rmSync(root, { recursive: true, force: true });
   }

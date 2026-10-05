@@ -11,7 +11,7 @@
  */
 
 import { randomUUID } from 'node:crypto';
-import { createFrame, loadAnnotations, saveAnnotations } from './board.js';
+import { createFrame, loadAnnotations, saveAnnotations, listVersions, revertFrame } from './board.js';
 import { lockBoard } from './lock.js';
 
 const JSON_CT = 'application/json; charset=utf-8';
@@ -171,6 +171,41 @@ export function handleApiRequest(req, res, root, ctx) {
       broadcastSSE('annotations', { frame: frameName, open: openCount });
 
       sendJson(res, 201, ann);
+    }).catch(err => send400(res, err.message));
+    return true;
+  }
+
+  // GET /api/frames/:name/versions — mockup version history (oldest first)
+  const versionsGet = path.match(/^\/api\/frames\/([^/]+)\/versions$/);
+  if (method === 'GET' && versionsGet) {
+    const frameName = decodeURIComponent(versionsGet[1]);
+    try {
+      const versions = listVersions(root, frameName);
+      sendJson(res, 200, versions);
+    } catch (err) {
+      err.message.includes('not found') ? send404(res, err.message) : send500(res, err.message);
+    }
+    return true;
+  }
+
+  // POST /api/frames/:name/revert — restore a mockup version (becomes a new version)
+  const versionsRevert = path.match(/^\/api\/frames\/([^/]+)\/revert$/);
+  if (method === 'POST' && versionsRevert) {
+    const frameName = decodeURIComponent(versionsRevert[1]);
+    readBody(req).then(body => {
+      const b = /** @type {any} */ (body);
+      const version = Number(b.version);
+      if (!Number.isInteger(version) || version < 1) {
+        return send400(res, 'version (positive integer) is required');
+      }
+      try {
+        revertFrame(root, frameName, version);
+        // the mockup write fires the watcher → the reverted content becomes the latest version
+        broadcastSSE('reload', { frame: frameName });
+        sendJson(res, 200, { ok: true, revertedTo: version });
+      } catch (err) {
+        err.message.includes('not found') ? send404(res, err.message) : send500(res, err.message);
+      }
     }).catch(err => send400(res, err.message));
     return true;
   }

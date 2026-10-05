@@ -10,7 +10,7 @@
  * iframe (annotate.js injected there), so pins stay live on every page.
  */
 
-import { loadProject, loadAnnotations } from './board.js';
+import { loadProject, loadAnnotations, listVersions, revertFrame } from './board.js';
 
 /** Landing palette identity colors (mirrors public/board.js FRAME_COLORS) */
 const SITE_COLORS = ['#62d96b', '#f2cf62', '#a9e8eb', '#f4b8c0', '#9fe7a4'];
@@ -88,6 +88,31 @@ function siteHead(title) {
     display: block; border: 1px solid rgba(43,42,38,0.14); border-radius: 10px;
     background: #fff; box-shadow: 0 16px 36px rgba(43,42,38,0.12);
   }
+  .vchip {
+    font: 600 11px/1 ui-monospace, Consolas, monospace; color: #84837b;
+    border: 1px solid rgba(43,42,38,0.14); border-radius: 6px; padding: 4px 7px;
+    cursor: pointer; user-select: none;
+  }
+  .vchip:hover { color: #2b2a26; border-color: #2b2a26; }
+  .vpop {
+    position: absolute; margin-top: 6px; z-index: 50;
+    background: #fff; border: 1px solid rgba(43,42,38,0.14); border-radius: 10px;
+    box-shadow: 0 16px 36px rgba(43,42,38,0.16); padding: 8px; min-width: 180px;
+  }
+  .vtitle {
+    font: 800 10px/1 "Manrope", sans-serif; letter-spacing: 0.1em; text-transform: uppercase;
+    color: #84837b; padding: 4px 6px 8px;
+  }
+  .vrow { display: flex; align-items: center; gap: 8px; padding: 5px 6px; border-radius: 7px; font-size: 12px; }
+  .vrow:hover { background: #f4f2ea; }
+  .vrow .vname { font-family: ui-monospace, Consolas, monospace; font-weight: 700; }
+  .vrow .vwhen { color: #84837b; font-size: 11px; }
+  .vrow .vrevert {
+    margin-left: auto; font: 700 11px/1 "Manrope", sans-serif; color: #2b2a26;
+    background: #fff; border: 1px solid rgba(43,42,38,0.14); border-radius: 6px;
+    padding: 5px 9px; cursor: pointer;
+  }
+  .vrow .vrevert:hover { background: #f2cf62; border-color: transparent; }
   </style>
 </head>
 `;
@@ -107,24 +132,60 @@ function siteRelayScript() {
 }
 
 /** Head row for one screen: dot + name + status chip + pin count + size */
-function screenMetaRow(f) {
+function screenMetaRow(f, versions) {
   const count = f.open > 0 ? `<span class="count">◉ ${f.open} open</span>` : `<span class="count zero">◎ 0 open</span>`;
-  return `<div style="display:flex; align-items:center; gap:10px; margin:0 0 12px;">
+  return `<div style="display:flex; align-items:center; gap:10px; margin:0 0 12px; position:relative;">
     <span class="dot" style="background:${f.color}"></span>
     <span style="font-family:'Epilogue',sans-serif; font-weight:800; font-size:12.5px; letter-spacing:0.04em; text-transform:uppercase;">${escHtml(f.name)}</span>
     <span class="chip${f.status === 'locked' ? ' locked' : ''}">${escHtml(f.status)}</span>
     ${count}
     <span style="margin-left:auto; font-family:ui-monospace,Consolas,monospace; font-size:11px; color:#84837b;">${f.w} × ${f.h}</span>
+    ${versionChip(f.name, versions)}
   </div>`;
 }
 
+/** Version chip + inline revert list for one screen page */
+function versionChip(frameName, versions) {
+  if (!versions.length) return '';
+  const items = [...versions].reverse().map(v => {
+    const when = new Date(v.mtime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    return `<div class="vrow" data-v="${v.version}"><span class="vname">v${v.version}</span><span class="vwhen">${when}</span><button class="vrevert" data-v="${v.version}">Revert</button></div>`;
+  }).join('');
+  return `<span class="vchip" style="margin-left:6px;">⟲ v${versions[versions.length - 1].version} ▾</span>
+  <div class="vpop" hidden>
+    <div class="vtitle">Versions</div>
+    ${items}
+  </div>
+  <script>
+  (function () {
+    var frame = ${JSON.stringify(frameName)};
+    var chip = document.currentScript.previousElementSibling.previousElementSibling;
+    var pop = document.currentScript.previousElementSibling;
+    chip.addEventListener('click', function () { pop.hidden = !pop.hidden; });
+    pop.addEventListener('click', function (e) {
+      var btn = e.target.closest('.vrevert');
+      if (!btn) return;
+      btn.disabled = true; btn.textContent = '…';
+      fetch('/api/frames/' + encodeURIComponent(frame) + '/revert', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ version: Number(btn.dataset.v) })
+      }).then(function () {
+        // the mockup changed → refresh this page so the iframe picks it up
+        location.reload();
+      }).catch(function () { btn.disabled = false; btn.textContent = 'Revert'; });
+    });
+  })();
+  <\/script>`;
+}
+
 /** One screen: meta row + iframe at natural size, centered */
-function screenSection(f, withSoloLink) {
+function screenSection(f, withSoloLink, versions) {
   const solo = withSoloLink
     ? `<div class="foot" style="margin-top:14px;"><a href="/site/${encodeURIComponent(f.name)}.html">open solo ↗</a></div>`
     : '';
   return `<section style="margin:0 0 56px;">
-  ${screenMetaRow(f)}
+  ${screenMetaRow(f, versions)}
   <div style="display:grid; place-items:center;">
     <iframe class="screen-iframe" src="/frames/${encodeURIComponent(f.name)}/mockup.html" scrolling="no" style="width:${f.w}px; height:${f.h}px;" title="${escHtml(f.name)}"></iframe>
   </div>
@@ -193,7 +254,11 @@ ${siteRelayScript()}
  */
 export function siteAllPage(root) {
   const frames = framesMeta(root);
-  const sections = frames.map(f => screenSection(f, true)).join('\n');
+  const sections = frames.map(f => {
+    let vs = [];
+    try { vs = listVersions(root, f.name); } catch { /* none yet */ }
+    return screenSection(f, true, vs);
+  }).join('\n');
   return `${siteHead('pikaso — all screens')}
 <body style="min-height:100vh;">
   <div style="max-width:1100px; margin:0 auto; padding:56px 24px 96px;">
@@ -223,6 +288,8 @@ export function screenPage(root, name) {
   const prev = frames[idx - 1];
   const next = frames[idx + 1];
   const count = f.open > 0 ? `◉ ${f.open} open` : '◎ 0 open';
+  let versions = [];
+  try { versions = listVersions(root, name); } catch { /* none yet */ }
   const link = (label, href) => href
     ? `<a href="${href}">${label}</a>`
     : `<span class="off">${label}</span>`;
@@ -230,7 +297,7 @@ export function screenPage(root, name) {
   return `${siteHead(`pikaso · ${f.name}`)}
 <body style="min-height:100vh; display:grid; place-items:center; padding:56px 32px 84px;">
   <main>
-    ${screenMetaRow(f)}
+    ${screenMetaRow(f, versions)}
     <iframe class="screen-iframe" src="/frames/${encodeURIComponent(f.name)}/mockup.html" scrolling="no" style="width:${f.w}px; height:${f.h}px;" title="${escHtml(f.name)}"></iframe>
     <div class="foot" style="margin-top:16px;">
       ${link('‹ index', '/site/index.html')}

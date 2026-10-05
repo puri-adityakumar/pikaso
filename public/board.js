@@ -225,11 +225,108 @@ function renderLabel(name, status, openCount) {
     `<span class="frame-name">${escHtml(name)}</span>` +
     `<span class="${statusCls}">${status}</span>` +
     `<span class="${annCls}">${annText}</span>` +
+    `<span class="frame-versions" data-frame="${escHtml(name)}">⟲ …</span>` +
     `<a class="frame-open" href="/site/${encodeURIComponent(name)}.html" target="_blank" rel="noreferrer" title="Open as a page">page ↗</a>`;
+
+  loadVersionChip(name, el.querySelector('.frame-versions'));
+  el.querySelector('.frame-versions').addEventListener('click', (e) => {
+    e.stopPropagation();
+    toggleVersionPopover(name, el.querySelector('.frame-versions'));
+  });
 }
 
 function escHtml(s) {
   return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+// ---------------------------------------------------------------------------
+// Version chip + revert popover (canvas frame labels)
+// ---------------------------------------------------------------------------
+
+/**
+ * Load the version count for a frame and render the ⟲ chip.
+ * @param {string} name
+ * @param {HTMLElement} chipEl
+ */
+async function loadVersionChip(name, chipEl) {
+  try {
+    const versions = await apiFetch(`/api/frames/${encodeURIComponent(name)}/versions`);
+    const latest = versions.length ? versions[versions.length - 1].version : 0;
+    chipEl.textContent = latest > 0 ? `⟲ v${latest}` : '';
+    chipEl.classList.toggle('has', latest > 0);
+  } catch { chipEl.textContent = ''; }
+}
+
+/**
+ * Toggle the version popover for a frame: lists versions with Revert buttons.
+ * @param {string} name
+ * @param {HTMLElement} chipEl
+ */
+async function toggleVersionPopover(name, chipEl) {
+  const existing = chipEl.parentElement.querySelector('.version-pop');
+  if (existing) { existing.remove(); return; }
+
+  const pop = document.createElement('div');
+  pop.className = 'version-pop';
+  const label = document.createElement('div');
+  label.className = 'version-pop-title';
+  label.textContent = 'Versions';
+  pop.appendChild(label);
+
+  try {
+    const versions = await apiFetch(`/api/frames/${encodeURIComponent(name)}/versions`);
+    if (!versions.length) {
+      const empty = document.createElement('div');
+      empty.className = 'version-row dim';
+      empty.textContent = 'No versions yet';
+      pop.appendChild(empty);
+    }
+    for (const v of [...versions].reverse()) {
+      const row = document.createElement('div');
+      row.className = 'version-row';
+      const when = new Date(v.mtime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      row.innerHTML = `<span class="v-name">v${v.version}</span><span class="v-when">${when}</span>`;
+      const btn = document.createElement('button');
+      btn.className = 'version-revert';
+      btn.type = 'button';
+      btn.textContent = 'Revert';
+      btn.addEventListener('click', async () => {
+        btn.disabled = true;
+        btn.textContent = '…';
+        try {
+          await apiFetch(`/api/frames/${encodeURIComponent(name)}/revert`, {
+            method: 'POST',
+            body: JSON.stringify({ version: v.version }),
+          });
+          pop.remove();
+          toast(`Reverted to v${v.version} — live reload on its way`, 3000);
+          loadVersionChip(name, chipEl);
+        } catch (err) {
+          btn.disabled = false;
+          btn.textContent = 'Revert';
+          toast(`Revert failed: ${err.message}`);
+        }
+      });
+      row.appendChild(btn);
+      pop.appendChild(row);
+    }
+  } catch (err) {
+    const errRow = document.createElement('div');
+    errRow.className = 'version-row dim';
+    errRow.textContent = `Could not load versions`;
+    pop.appendChild(errRow);
+  }
+
+  chipEl.parentElement.appendChild(pop);
+  // close on outside click
+  setTimeout(() => {
+    document.addEventListener('click', function handler(e) {
+      if (!pop.contains(e.target) && !chipEl.contains(e.target)) {
+        pop.remove();
+        document.removeEventListener('click', handler);
+      }
+    });
+  }, 0);
 }
 
 // ---------------------------------------------------------------------------

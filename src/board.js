@@ -4,7 +4,7 @@
  * All writes are atomic (write to .tmp → rename).
  */
 
-import { readFileSync, writeFileSync, renameSync, mkdirSync, existsSync } from 'node:fs';
+import { readFileSync, writeFileSync, renameSync, mkdirSync, existsSync, readdirSync, statSync } from 'node:fs';
 import { join, basename } from 'node:path';
 import { randomUUID } from 'node:crypto';
 
@@ -55,7 +55,10 @@ import { randomUUID } from 'node:crypto';
  */
 function atomicWrite(filePath, data) {
   const tmp = filePath + '.tmp';
-  writeFileSync(tmp, JSON.stringify(data, null, 2) + '\n', 'utf8');
+  // strings (e.g. mockup HTML for version snapshots) are written as-is;
+  // structured state is pretty-printed JSON
+  const payload = typeof data === 'string' ? data : JSON.stringify(data, null, 2) + '\n';
+  writeFileSync(tmp, payload, 'utf8');
   renameSync(tmp, filePath);
 }
 
@@ -215,6 +218,96 @@ export function updateFrame(root, frameId, patch) {
   Object.assign(frame, patch);
   saveProject(root, project);
   return project;
+}
+
+// ---------------------------------------------------------------------------
+// Version history (per-frame mockup snapshots)
+// ---------------------------------------------------------------------------
+
+/**
+ * Snapshot the given mockup content as the frame's next version.
+ * No-op when the content is identical to the latest version (hash compare),
+ * so no-op saves don't burn version numbers. Reverts intentionally produce
+ * a new version (linear history).
+ * @param {string} root
+ * @param {string} name  Frame name.
+ * @param {string} content  The mockup HTML content to record.
+ * @returns {{ version: number } | null}  null when content unchanged.
+ * @throws {Error} If frame does not exist.
+ */
+export function snapshotVersion(root, name, content) {
+  assertSafeName(name);
+  const versionsDir = join(root, 'frames', name, 'versions');
+  const last = latestVersion(root, name);
+  if (last) {
+    const lastContent = readFileSync(join(versionsDir, `v${last.version}.html`), 'utf8');
+    if (lastContent === content) return null;
+  }
+  const next = last ? last.version + 1 : 1;
+  mkdirSync(versionsDir, { recursive: true });
+  atomicWrite(join(versionsDir, `v${next}.html`), content);
+  return { version: next };
+}
+
+/**
+ * List a frame's mockup versions (oldest first).
+ * @param {string} root
+ * @param {string} name  Frame name.
+ * @returns {Array<{ version: number, mtime: string, bytes: number }>}
+ * @throws {Error} If frame does not exist.
+ */
+export function listVersions(root, name) {
+  assertSafeName(name);
+  const mockupPath = join(root, 'frames', name, 'mockup.html');
+  if (!existsSync(join(root, 'frames', name))) {
+    throw new Error(`Frame "${name}" not found`);
+  }
+  const versionsDir = join(mockupPath, '..', 'versions');
+  if (!existsSync(versionsDir)) return [];
+  return readdirSync(versionsDir)
+    .filter(f => /^v\d+\.html$/.test(f))
+    .map(f => {
+      const full = join(versionsDir, f);
+      const st = statSync(full);
+      return { version: parseInt(f.slice(1), 10), mtime: st.mtime.toISOString(), bytes: st.size };
+    })
+    .sort((a, b) => a.version - b.version);
+}
+
+/**
+ * Latest version entry, or null when the frame has no versions yet.
+ * @param {string} root
+ * @param {string} name
+ * @returns {{ version: number, mtime: string, bytes: number } | null}
+ */
+function latestVersion(root, name) {
+  const list = listVersions(root, name);
+  return list.length ? list[list.length - 1] : null;
+}
+
+/**
+ * Revert a frame's mockup to a stored version. Writes the version content to
+ * mockup.html (atomic); the resulting change is itself snapshotted by the
+ * watcher, keeping the history linear.
+ * @param {string} root
+ * @param {string} name  Frame name.
+ * @param {number} version  Version number to restore.
+ * @returns {Project}
+ * @throws {Error} If frame or version not found.
+ */
+export function revertFrame(root, name, version) {
+  assertSafeName(name);
+  const versionPath = join(root, 'frames', name, 'versions', `v${version}.html`);
+  if (!existsSync(versionPath)) {
+    throw new Error(`Version v${version} not found for frame "${name}"`);
+  }
+  const content = readFileSync(versionPath, 'utf8');
+  const mockupPath = join(root, 'frames', name, 'mockup.html');
+  atomicWrite(mockupPath, content);
+  // the revert is itself a change → snapshot it here (the watcher will see
+  // identical content later and no-op), keeping the history linear
+  snapshotVersion(root, name, content);
+  return loadProject(root);
 }
 
 // ---------------------------------------------------------------------------

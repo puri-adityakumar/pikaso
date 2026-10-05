@@ -322,3 +322,53 @@ test('buildSelectorPath: single child of type uses plain tag', () => {
   assert.ok(!path.includes('nth-of-type'), `should not use nth-of-type for single child, got: ${path}`);
   assert.ok(path.includes('h1'), `should include h1, got: ${path}`);
 });
+
+// ---------------------------------------------------------------------------
+// Version history routes
+// ---------------------------------------------------------------------------
+
+test('GET versions + POST revert roundtrip via API', async () => {
+  const root = tmpRoot();
+  let server;
+  try {
+    createFrame(root, 'landing');
+    const board = await import('../src/board.js');
+    board.snapshotVersion(root, 'landing', '<h1>v1</h1>');
+    board.snapshotVersion(root, 'landing', '<h1>v2</h1>');
+    ({ server } = await startServer({ port: 0, root }));
+    const { port } = server.address();
+
+    const listRes = await fetch(`http://127.0.0.1:${port}/api/frames/landing/versions`);
+    assert.equal(listRes.status, 200);
+    const versions = await listRes.json();
+    assert.equal(versions.length, 2);
+
+    const revertRes = await fetch(`http://127.0.0.1:${port}/api/frames/landing/revert`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ version: 1 }),
+    });
+    assert.equal(revertRes.status, 200);
+    const body = await revertRes.json();
+    assert.equal(body.ok, true);
+    assert.equal(body.revertedTo, 1);
+    assert.equal(readFileSync(join(root, 'frames', 'landing', 'mockup.html'), 'utf8'), '<h1>v1</h1>');
+
+    const bad = await fetch(`http://127.0.0.1:${port}/api/frames/landing/revert`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ version: 0 }),
+    });
+    assert.equal(bad.status, 400);
+
+    const missing = await fetch(`http://127.0.0.1:${port}/api/frames/landing/revert`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ version: 99 }),
+    });
+    assert.equal(missing.status, 404);
+  } finally {
+    server?.close();
+    rmSync(root, { recursive: true, force: true });
+  }
+});

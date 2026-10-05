@@ -255,6 +255,60 @@
       transition: color 0.15s ease;
     }
     .frame-label .frame-open:hover { color: var(--ink); text-decoration: underline; }
+    .frame-label .frame-versions {
+      pointer-events: auto;
+      font: 600 10.5px/1 var(--mono);
+      color: var(--muted);
+      cursor: pointer;
+      border: 1px solid transparent;
+      border-radius: 6px;
+      padding: 3px 5px;
+      transition: color 0.15s ease, border-color 0.15s ease;
+    }
+    .frame-label .frame-versions.has:hover { color: var(--ink); border-color: var(--edge); }
+    .version-pop {
+      position: absolute;
+      top: 22px; left: 0;
+      z-index: 150;
+      min-width: 190px;
+      background: var(--card);
+      border: 1px solid var(--edge);
+      border-radius: 10px;
+      box-shadow: 0 16px 36px rgba(43, 42, 38, 0.16);
+      padding: 8px;
+      pointer-events: auto;
+    }
+    .version-pop-title {
+      font: 800 10px/1 var(--sans);
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--muted);
+      padding: 4px 6px 8px;
+    }
+    .version-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 5px 6px;
+      border-radius: 7px;
+      font-size: 12px;
+    }
+    .version-row:hover { background: var(--field); }
+    .version-row .v-name { font-family: var(--mono); font-weight: 700; }
+    .version-row .v-when { color: var(--muted); font-size: 11px; }
+    .version-row .version-revert {
+      margin-left: auto;
+      font: 700 11px/1 var(--sans);
+      color: var(--ink);
+      background: var(--card);
+      border: 1px solid var(--edge);
+      border-radius: 6px;
+      padding: 5px 9px;
+      cursor: pointer;
+      transition: background 0.15s ease;
+    }
+    .version-row .version-revert:hover { background: var(--butter); border-color: transparent; }
+    .version-row.dim { color: var(--muted); }
     .frame-label .ann-count {
       font-weight: 800;
       color: var(--ink);

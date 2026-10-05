@@ -18,7 +18,7 @@
  */
 
 import { createServer } from 'node:http';
-import { readFileSync, existsSync, watch, mkdirSync } from 'node:fs';
+import { readFileSync, existsSync, watch, mkdirSync, readdirSync } from 'node:fs';
 import { join, extname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { dirname } from 'node:path';
@@ -26,7 +26,7 @@ import { homedir, tmpdir } from 'node:os';
 import { randomUUID } from 'node:crypto';
 
 import { injectScript } from './inject.js';
-import { loadProject, loadAnnotations } from './board.js';
+import { loadProject, loadAnnotations, snapshotVersion, listVersions } from './board.js';
 import { siteIndexPage, siteAllPage, screenPage } from './site.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -260,11 +260,31 @@ function watchFrames(root) {
   const framesDir = join(root, 'frames');
   try {
     mkdirSync(framesDir, { recursive: true });
+
+    // Seed v1 for frames that have no version history yet (boards created
+    // before the server started don't get a watcher event)
+    try {
+      for (const entry of readdirSync(framesDir, { withFileTypes: true })) {
+        if (!entry.isDirectory()) continue;
+        const mockupPath = join(framesDir, entry.name, 'mockup.html');
+        if (existsSync(mockupPath) && listVersions(root, entry.name).length === 0) {
+          snapshotVersion(root, entry.name, readFileSync(mockupPath, 'utf8'));
+        }
+      }
+    } catch { /* best-effort seeding */ }
+
     const watcher = watch(framesDir, { recursive: true }, (eventType, filename) => {
       if (!filename || !filename.endsWith('mockup.html')) return;
       // filename is like "landing/mockup.html" on Linux or "landing\mockup.html" on Windows
       const parts = filename.replace(/\\/g, '/').split('/');
       const frameName = parts[0];
+      // record the new content as the next version (no-op when unchanged)
+      try {
+        const mockupPath = join(framesDir, frameName, 'mockup.html');
+        if (existsSync(mockupPath)) {
+          snapshotVersion(root, frameName, readFileSync(mockupPath, 'utf8'));
+        }
+      } catch { /* versioning must never break live reload */ }
       broadcastSSE('reload', { frame: frameName });
     });
     watcher.on('error', () => { /* dir removed mid-run: live reload just stops */ });
